@@ -1,451 +1,280 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" data-theme="dim">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Piste Moto — Alès · {{ count_active }} sorties à venir</title>
-<style>
-:root {
-    --bg: #0f0f10;
-    --surface: #18181b;
-    --surface-2: #232327;
-    --border: #2a2a30;
-    --text: #f5f5f7;
-    --text-mute: #a1a1aa;
-    --accent: #ef4444;
-    --accent-hover: #dc2626;
-    --ok: #22c55e;
-    --warn: #f59e0b;
-    --out: #71717a;
-}
-* { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; }
-body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    line-height: 1.45;
-    -webkit-font-smoothing: antialiased;
-}
-header {
-    padding: 20px 16px 12px;
-    border-bottom: 1px solid var(--border);
-    background: var(--surface);
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    backdrop-filter: blur(8px);
-}
-header h1 {
-    margin: 0 0 4px;
-    font-size: 20px;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-}
-header .sub {
-    color: var(--text-mute);
-    font-size: 12px;
-}
-.stats {
-    margin-top: 8px;
-    display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
-    font-size: 12px;
-}
-.stats .stat {
-    color: var(--text-mute);
-}
-.stats .stat strong {
-    color: var(--text);
-    font-weight: 600;
-}
-.filters {
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border);
-    background: var(--surface);
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-.filters input[type=search] {
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--surface-2);
-    color: var(--text);
-    font-size: 15px;
-    outline: none;
-}
-.filters input[type=search]:focus {
-    border-color: var(--accent);
-}
-.filters .row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-.filters label.toggle {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 13px;
-    color: var(--text-mute);
-    cursor: pointer;
-    user-select: none;
-}
-.filters label.toggle input { accent-color: var(--accent); }
-.filters select {
-    padding: 6px 10px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--surface-2);
-    color: var(--text);
-    font-size: 13px;
-    cursor: pointer;
-    outline: none;
-}
-.filters select:focus { border-color: var(--accent); }
-.filters-group {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-.filters-group .label {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--text-mute);
-    font-weight: 600;
-}
-.chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-}
-.chip {
-    padding: 5px 10px;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    background: var(--surface-2);
-    color: var(--text-mute);
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.15s;
-    font-family: inherit;
-}
-.chip.active {
-    background: var(--accent);
-    color: white;
-    border-color: var(--accent);
-}
-.chip-toggle-all {
-    color: var(--text-mute);
-    font-size: 11px;
-    text-decoration: underline;
-    cursor: pointer;
-    background: none;
-    border: none;
-    padding: 5px 0;
-    font-family: inherit;
-}
-.chip-toggle-all:hover { color: var(--text); }
-main {
-    padding: 16px;
-    max-width: 880px;
-    margin: 0 auto;
-}
-.month-section {
-    margin-bottom: 24px;
-}
-.month-section h2 {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--text-mute);
-    font-weight: 600;
-    margin: 0 0 10px;
-    padding: 0 4px;
-}
-.event {
-    display: grid;
-    grid-template-columns: 56px 1fr auto;
-    gap: 12px;
-    align-items: center;
-    padding: 12px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    margin-bottom: 8px;
-    transition: border-color 0.15s;
-}
-.event:hover { border-color: #3a3a40; }
-.event[data-hidden="1"] { display: none; }
-.event[data-out="1"] { opacity: 0.5; }
-.event-date {
-    text-align: center;
-    background: var(--surface-2);
-    border-radius: 8px;
-    padding: 6px 4px;
-    line-height: 1.1;
-}
-.event-day {
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--text);
-}
-.event-month {
-    font-size: 10px;
-    color: var(--text-mute);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-top: 2px;
-}
-.event-weekday {
-    font-size: 9px;
-    color: var(--text-mute);
-    text-transform: uppercase;
-    margin-top: 1px;
-}
-.event[data-weekend="1"] .event-weekday { color: var(--accent); }
-.event-info { min-width: 0; }
-.event-org {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-mute);
-    font-weight: 600;
-    margin-bottom: 2px;
-}
-.event-title {
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--text);
-    margin-bottom: 4px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-.event-meta {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    flex-wrap: wrap;
-    font-size: 12px;
-}
-.event-meta .price {
-    color: var(--text);
-    font-weight: 600;
-}
-.event-meta .seats { color: var(--ok); font-weight: 500; }
-.event-meta .seats.low { color: var(--warn); }
-.event-meta .seats.out { color: var(--out); }
-.event-levels {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    margin-top: 6px;
-}
-.level-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px 7px;
-    border-radius: 6px;
-    background: var(--surface-2);
-    font-size: 11px;
-    color: var(--text-mute);
-    font-weight: 500;
-    border: 1px solid var(--border);
-}
-.level-badge.has-seats { color: var(--ok); border-color: rgba(34,197,94,0.3); }
-.level-badge.low-seats { color: var(--warn); border-color: rgba(245,158,11,0.3); }
-.level-badge.no-seats { color: var(--out); text-decoration: line-through; opacity: 0.6; }
-.level-badge .seats-count {
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-}
-.event-action {
-    display: inline-block;
-    padding: 8px 14px;
-    background: var(--accent);
-    color: white;
-    text-decoration: none;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 600;
-    transition: background 0.15s;
-    white-space: nowrap;
-}
-.event-action:hover { background: var(--accent-hover); }
-.event-action.disabled {
-    background: var(--surface-2);
-    color: var(--text-mute);
-    pointer-events: none;
-}
-.empty-state {
-    padding: 60px 16px;
-    text-align: center;
-    color: var(--text-mute);
-}
-.empty-state strong { color: var(--text); }
-footer {
-    padding: 24px 16px 60px;
-    text-align: center;
-    color: var(--text-mute);
-    font-size: 11px;
-}
+<title>Piste Moto · Alès — {{ count_active }} sorties à venir</title>
 
-@media (max-width: 540px) {
-    .event-title { white-space: normal; }
-    .event { grid-template-columns: 48px 1fr; }
-    .event-action {
-        grid-column: 2 / 3;
+<!-- DaisyUI = composants pré-faits sur Tailwind. Tailwind Play CDN = JIT runtime. -->
+<link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.23/dist/full.min.css" rel="stylesheet" type="text/css" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    // Configuration Tailwind : on garde la palette DaisyUI, on ajoute juste
+    // une couleur d'accent moto pour les détails (jauge places, hover bouton).
+    tailwind.config = {
+        theme: {
+            extend: {
+                fontFamily: {
+                    sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
+                },
+            },
+        },
+    };
+</script>
+<link rel="preconnect" href="https://rsms.me/">
+<link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+
+<style>
+    /* Tweaks visuels minimalistes (le reste vient de DaisyUI) */
+    html { scroll-behavior: smooth; }
+    .event[data-hidden="1"] { display: none; }
+    .event[data-out="1"] .event-action-btn { pointer-events: none; opacity: 0.4; }
+    /* Date kbd-like à gauche de chaque card */
+    .date-block {
+        min-width: 56px;
         text-align: center;
-        margin-top: 4px;
     }
-}
+    .date-day {
+        font-size: 1.5rem;
+        font-weight: 800;
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+    }
+    /* Couleur accent week-end */
+    .event[data-weekend="1"] .date-weekday {
+        color: hsl(var(--er));
+    }
+    /* Chip toggle clean : sélectionné = primary, sinon ghost */
+    .chip-toggle.active {
+        --tw-bg-opacity: 1;
+        background-color: hsl(var(--p) / var(--tw-bg-opacity));
+        color: hsl(var(--pc));
+        border-color: hsl(var(--p));
+    }
+
+    /* Badges (tags) plus compacts que le défaut DaisyUI :
+       - padding horizontal réduit (0.5 → 0.4rem)
+       - height légèrement plus serrée
+       - gap interne réduit (texte + nombre) */
+    .badge.badge-sm {
+        padding-left: 0.4rem;
+        padding-right: 0.4rem;
+        height: 1.1rem;
+        font-size: 0.7rem;
+        gap: 0.2rem;
+    }
+    .badge.badge-sm .tabular-nums {
+        margin-left: -0.05rem;
+    }
+
+    /* Chips filtres (btn-xs) plus compacts */
+    .chip-toggle.btn-xs {
+        padding-left: 0.55rem;
+        padding-right: 0.55rem;
+        height: 1.5rem;
+        min-height: 1.5rem;
+        font-size: 0.72rem;
+    }
 </style>
 </head>
-<body>
 
-<header>
-    <h1>Piste Moto · Alès</h1>
-    <div class="sub">crawl {{ generated_at }} · {{ count_total }} events en base</div>
-    <div class="stats">
-        <span class="stat"><strong id="stat-count">{{ count_active }}</strong> sortie<span id="stat-count-s">s</span> visible<span id="stat-count-s2">s</span></span>
-        <span class="stat"><strong id="stat-seats">—</strong> places restantes (RideApp)</span>
-        <span class="stat" id="stat-price-block"><strong id="stat-price">—</strong></span>
+<body class="min-h-screen bg-base-100">
+
+<!-- ─────────── NAVBAR ─────────── -->
+<header class="navbar bg-base-200 border-b border-base-300 sticky top-0 z-30 backdrop-blur bg-opacity-90">
+    <div class="container mx-auto max-w-5xl px-2">
+        <div class="flex-1">
+            <a class="text-xl font-bold tracking-tight">
+                <span class="text-error">●</span> Piste Moto · Alès
+            </a>
+        </div>
+        <div class="flex-none text-xs text-base-content/60">
+            crawl {{ generated_at }}
+        </div>
     </div>
 </header>
 
-<div class="filters">
-    <input type="search" id="search" placeholder="Rechercher (organisateur, mois, mot-clé…)" autocomplete="off">
-
-    <div class="row">
-        <div class="filters-group">
-            <span class="label">Tri</span>
-            <select id="sort">
-                <option value="date-asc">Date ↑ (proche en premier)</option>
-                <option value="date-desc">Date ↓ (loin en premier)</option>
-                <option value="price-asc">Prix ↑</option>
-                <option value="price-desc">Prix ↓</option>
-                <option value="seats-desc">Places restantes ↓</option>
-            </select>
+<!-- ─────────── STATS ─────────── -->
+<section class="container mx-auto max-w-5xl px-3 pt-4">
+    <div class="stats stats-horizontal shadow w-full bg-base-200 text-base-content">
+        <div class="stat py-3 px-4">
+            <div class="stat-title text-xs">Sorties visibles</div>
+            <div class="stat-value text-2xl"><span id="stat-count">{{ count_active }}</span></div>
         </div>
-        <label class="toggle">
-            <input type="checkbox" id="only-available" checked>
-            Avec places dispo
-        </label>
-        <label class="toggle">
-            <input type="checkbox" id="only-weekend">
-            Week-end uniquement
-        </label>
-    </div>
-
-    <div class="filters-group">
-        <span class="label">Fourchette de prix</span>
-        <div class="chips" id="price-chips">
-            <button class="chip" data-price="lt120">&lt; 120 €</button>
-            <button class="chip" data-price="120-150">120 – 150 €</button>
-            <button class="chip" data-price="gt150">&gt; 150 €</button>
+        <div class="stat py-3 px-4">
+            <div class="stat-title text-xs">Places restantes</div>
+            <div class="stat-value text-2xl"><span id="stat-seats">—</span></div>
+            <div class="stat-desc text-[10px]">depuis RideApp</div>
+        </div>
+        <div class="stat py-3 px-4">
+            <div class="stat-title text-xs">Fourchette prix</div>
+            <div class="stat-value text-2xl"><span id="stat-price">—</span></div>
         </div>
     </div>
+</section>
 
-    <div class="filters-group">
-        <span class="label">Niveau de pilotage</span>
-        <div class="chips" id="level-chips">
-            <button class="chip" data-level="debutant">Débutant</button>
-            <button class="chip" data-level="intermediaire">Intermédiaire</button>
-            <button class="chip" data-level="confirme">Confirmé</button>
-            <button class="chip" data-level="expert">Pilote / Expert</button>
-            <button class="chip" data-level="open">Tous niveaux</button>
+<!-- ─────────── FILTRES ─────────── -->
+<section class="container mx-auto max-w-5xl px-3 pt-4">
+    <div class="card bg-base-200 shadow">
+        <div class="card-body p-4 gap-3">
+
+            <input
+                type="search"
+                id="search"
+                placeholder="Rechercher (organisateur, mois, mot-clé…)"
+                class="input input-bordered w-full"
+                autocomplete="off"
+            >
+
+            <div class="flex flex-wrap gap-3 items-end">
+                <div class="form-control">
+                    <label class="label py-1"><span class="label-text text-xs uppercase tracking-wider opacity-60">Tri</span></label>
+                    <select id="sort" class="select select-bordered select-sm">
+                        <option value="date-asc">Date ↑ (proche)</option>
+                        <option value="date-desc">Date ↓ (loin)</option>
+                        <option value="price-asc">Prix ↑</option>
+                        <option value="price-desc">Prix ↓</option>
+                        <option value="seats-desc">Places restantes ↓</option>
+                    </select>
+                </div>
+                <label class="label cursor-pointer gap-2">
+                    <input type="checkbox" id="only-available" class="toggle toggle-primary toggle-sm" checked>
+                    <span class="label-text text-sm">Avec places dispo</span>
+                </label>
+                <label class="label cursor-pointer gap-2">
+                    <input type="checkbox" id="only-weekend" class="toggle toggle-primary toggle-sm">
+                    <span class="label-text text-sm">Week-end uniquement</span>
+                </label>
+            </div>
+
+            <div>
+                <span class="label-text text-xs uppercase tracking-wider opacity-60 block mb-1">Fourchette de prix</span>
+                <div class="flex flex-wrap gap-2" id="price-chips">
+                    <button class="chip-toggle btn btn-xs btn-outline" data-price="lt120">&lt; 120 €</button>
+                    <button class="chip-toggle btn btn-xs btn-outline" data-price="120-150">120 – 150 €</button>
+                    <button class="chip-toggle btn btn-xs btn-outline" data-price="gt150">&gt; 150 €</button>
+                </div>
+            </div>
+
+            <div>
+                <span class="label-text text-xs uppercase tracking-wider opacity-60 block mb-1">Niveau de pilotage</span>
+                <div class="flex flex-wrap gap-2" id="level-chips">
+                    <button class="chip-toggle btn btn-xs btn-outline" data-level="debutant">Débutant</button>
+                    <button class="chip-toggle btn btn-xs btn-outline" data-level="intermediaire">Intermédiaire</button>
+                    <button class="chip-toggle btn btn-xs btn-outline" data-level="confirme">Confirmé</button>
+                    <button class="chip-toggle btn btn-xs btn-outline" data-level="expert">Pilote / Expert</button>
+                    <button class="chip-toggle btn btn-xs btn-outline" data-level="open">Tous niveaux</button>
+                </div>
+            </div>
+
+            <div>
+                <div class="flex items-center justify-between mb-1">
+                    <span class="label-text text-xs uppercase tracking-wider opacity-60">Organisateurs</span>
+                    <button id="orgs-toggle-all" class="text-xs link link-hover opacity-70" type="button">
+                        tout (dé)sélectionner
+                    </button>
+                </div>
+                <div class="flex flex-wrap gap-2" id="org-chips">
+                    {% for org in organizers %}
+                        <button class="chip-toggle btn btn-xs btn-outline active" data-org="{{ org }}">{{ org }}</button>
+                    {% endfor %}
+                </div>
+            </div>
+
         </div>
     </div>
+</section>
 
-    <div class="filters-group">
-        <span class="label">
-            Organisateurs
-            <button class="chip-toggle-all" id="orgs-toggle-all" type="button">tout (dé)sélectionner</button>
-        </span>
-        <div class="chips" id="org-chips">
-            {% for org in organizers %}
-                <button class="chip active" data-org="{{ org }}">{{ org }}</button>
-            {% endfor %}
-        </div>
-    </div>
-</div>
-
-<main id="events-main">
+<!-- ─────────── ÉVÉNEMENTS ─────────── -->
+<main class="container mx-auto max-w-5xl px-3 py-4" id="events-main">
 {% if not events %}
-    <div class="empty-state">
-        <strong>Aucune sortie à venir</strong><br>
-        Le crawl n'a pas trouvé d'événement actif.
+    <div class="alert alert-warning shadow my-6">
+        <strong>Aucune sortie à venir.</strong> Le crawl n'a pas trouvé d'événement actif.
     </div>
 {% endif %}
 {% for month_label, group in events_by_month %}
-    <section class="month-section" data-month="{{ month_label }}">
-        <h2>{{ month_label }}</h2>
-        {% for ev in group %}
-        <article class="event"
-                 data-org="{{ ev.organizer }}"
-                 data-available="{{ '1' if ev.available else '0' }}"
-                 data-out="{{ '0' if ev.available else '1' }}"
-                 data-weekend="{{ '1' if ev.is_weekend else '0' }}"
-                 data-date-iso="{{ ev.date_iso }}"
-                 data-price-cents="{{ ev.price_cents }}"
-                 data-has-price="{{ '1' if ev.has_price else '0' }}"
-                 data-currency="{{ ev.currency }}"
-                 data-seats="{{ ev.seats_num }}"
-                 data-levels="{{ ev.canonical_levels_csv }}"
-                 data-levels-bookable="{{ ev.bookable_levels_csv }}"
-                 data-text="{{ ev.search_blob | e }}">
-            <div class="event-date">
-                <div class="event-day">{{ ev.day_num }}</div>
-                <div class="event-month">{{ ev.month_short }}</div>
-                <div class="event-weekday">{{ ev.weekday_short }}</div>
-            </div>
-            <div class="event-info">
-                <div class="event-org">{{ ev.organizer }}</div>
-                <div class="event-title" title="{{ ev.title }}">{{ ev.title }}</div>
-                <div class="event-meta">
-                    {% if ev.price_display %}<span class="price">{{ ev.price_display }}</span>{% endif %}
-                    {% if ev.seats_label %}
-                        <span class="seats {{ ev.seats_class }}">{{ ev.seats_label }}</span>
-                    {% endif %}
-                </div>
-                {% if ev.levels %}
-                <div class="event-levels">
-                    {% for lv in ev.levels %}
-                        {% if lv.remaining is defined %}
-                            {% set lv_class = 'no-seats' if lv.remaining == 0 else ('low-seats' if lv.remaining < 5 else 'has-seats') %}
-                            <span class="level-badge {{ lv_class }}" title="{{ lv.raw }} : {{ lv.remaining }} place(s) restante(s) sur {{ lv.max }}">
-                                {{ lv.raw }} <span class="seats-count">{{ lv.remaining }}</span>
-                            </span>
-                        {% else %}
-                            <span class="level-badge" title="{{ lv.raw }}">{{ lv.raw }}</span>
+    <section class="month-section mb-6" data-month="{{ month_label }}">
+        <h2 class="text-xs uppercase tracking-widest opacity-60 mb-2 px-1 font-semibold">{{ month_label }}</h2>
+        <div class="space-y-2">
+            {% for ev in group %}
+            <article class="event card bg-base-200 shadow-sm hover:shadow-md transition-shadow"
+                     data-org="{{ ev.organizer }}"
+                     data-available="{{ '1' if ev.available else '0' }}"
+                     data-out="{{ '0' if ev.available else '1' }}"
+                     data-weekend="{{ '1' if ev.is_weekend else '0' }}"
+                     data-date-iso="{{ ev.date_iso }}"
+                     data-price-cents="{{ ev.price_cents }}"
+                     data-has-price="{{ '1' if ev.has_price else '0' }}"
+                     data-currency="{{ ev.currency }}"
+                     data-seats="{{ ev.seats_num }}"
+                     data-levels="{{ ev.canonical_levels_csv }}"
+                     data-levels-bookable="{{ ev.bookable_levels_csv }}"
+                     data-text="{{ ev.search_blob | e }}">
+                <div class="card-body p-3 sm:p-4 flex-row gap-3 sm:gap-4 items-center">
+
+                    <div class="date-block bg-base-300 rounded-lg py-2 px-2 shrink-0">
+                        <div class="date-day">{{ ev.day_num }}</div>
+                        <div class="text-[10px] uppercase tracking-wider opacity-70 mt-0.5">{{ ev.month_short }}</div>
+                        <div class="date-weekday text-[10px] uppercase opacity-70">{{ ev.weekday_short }}</div>
+                    </div>
+
+                    <div class="flex-1 min-w-0">
+                        <div class="text-[11px] uppercase tracking-wider font-semibold opacity-70 mb-0.5">{{ ev.organizer }}</div>
+                        <div class="font-medium leading-snug truncate" title="{{ ev.title }}">{{ ev.title }}</div>
+
+                        <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-sm">
+                            {% if ev.price_display %}
+                                <span class="font-semibold">{{ ev.price_display }}</span>
+                            {% endif %}
+                            {% if ev.seats_label %}
+                                <span class="badge badge-sm
+                                    {% if ev.seats_class == 'low' %}badge-warning
+                                    {% elif ev.seats_class == 'out' %}badge-ghost line-through opacity-60
+                                    {% else %}badge-success badge-outline
+                                    {% endif %}">{{ ev.seats_label }}</span>
+                            {% endif %}
+                        </div>
+
+                        {% if ev.levels %}
+                        <div class="flex flex-wrap gap-1 mt-1.5">
+                            {% for lv in ev.levels %}
+                                {% if lv.remaining is defined %}
+                                    {% if lv.remaining == 0 %}
+                                        <span class="badge badge-sm badge-ghost line-through opacity-50" title="{{ lv.raw }} : complet">{{ lv.raw }}</span>
+                                    {% elif lv.remaining < 5 %}
+                                        <span class="badge badge-sm badge-warning" title="{{ lv.raw }} : {{ lv.remaining }}/{{ lv.max }}">{{ lv.raw }} <span class="font-bold tabular-nums">{{ lv.remaining }}</span></span>
+                                    {% else %}
+                                        <span class="badge badge-sm badge-success badge-outline" title="{{ lv.raw }} : {{ lv.remaining }}/{{ lv.max }}">{{ lv.raw }} <span class="font-bold tabular-nums">{{ lv.remaining }}</span></span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge badge-sm badge-outline" title="{{ lv.raw }}">{{ lv.raw }}</span>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
                         {% endif %}
-                    {% endfor %}
+                    </div>
+
+                    <div class="shrink-0">
+                        {% if ev.booking_url and ev.available %}
+                            <a class="event-action-btn btn btn-sm sm:btn-md btn-primary" href="{{ ev.booking_url }}" target="_blank" rel="noopener">Réserver</a>
+                        {% else %}
+                            <span class="event-action-btn btn btn-sm sm:btn-md btn-disabled">Complet</span>
+                        {% endif %}
+                    </div>
+
                 </div>
-                {% endif %}
-            </div>
-            {% if ev.booking_url and ev.available %}
-                <a class="event-action" href="{{ ev.booking_url }}" target="_blank" rel="noopener">Réserver</a>
-            {% else %}
-                <span class="event-action disabled">Complet</span>
-            {% endif %}
-        </article>
-        {% endfor %}
+            </article>
+            {% endfor %}
+        </div>
     </section>
 {% endfor %}
 </main>
 
-<footer>
-    Données scrapées chez les organisateurs. « Réserver » redirige vers leur site.
+<footer class="text-center text-xs opacity-60 py-8 border-t border-base-300">
+    {{ count_total }} events en base · {{ count_active }} actifs · scrape les organisateurs publics, "Réserver" redirige chez eux.
 </footer>
 
+<!-- ─────────── JS FILTRES ─────────── -->
 <script>
 (function() {
     const search = document.getElementById('search');
@@ -462,16 +291,14 @@ footer {
     const sections = Array.from(document.querySelectorAll('.month-section'));
 
     const activeOrgs = new Set();
-    orgChips.querySelectorAll('.chip').forEach(c => activeOrgs.add(c.dataset.org));
+    orgChips.querySelectorAll('.chip-toggle').forEach(c => activeOrgs.add(c.dataset.org));
 
-    const activePriceBuckets = new Set();  // empty = no price filter
-    const activeLevels = new Set();        // empty = no level filter
+    const activePriceBuckets = new Set();
+    const activeLevels = new Set();
 
     // --- Filtres ---
     function priceMatchesAnyBucket(priceCents, hasPrice, currency) {
         if (activePriceBuckets.size === 0) return true;
-        // On n'applique le filtre prix que pour EUR (pour ne pas exclure les CHF
-        // par accident). Si l'event n'a pas de prix, il est masqué.
         if (!hasPrice || currency !== 'EUR') return false;
         const eur = priceCents / 100;
         if (activePriceBuckets.has('lt120') && eur < 120) return true;
@@ -481,16 +308,11 @@ footer {
     }
 
     function levelMatchesAnyChip(bookableCsv) {
-        // Pas de filtre actif → tous les events passent.
         if (activeLevels.size === 0) return true;
-        // bookableCsv contient uniquement les niveaux où il reste des places
-        // (ou pour lesquels on n'a pas l'info — on suppose dispo). Un event
-        // entièrement plein a bookableCsv vide et sera masqué.
         const bookable = (bookableCsv || '').split(',').filter(Boolean);
         for (const l of bookable) {
             if (activeLevels.has(l)) return true;
         }
-        // "open" = pas de niveau structuré → matche n'importe quel filtre choisi.
         return bookable.includes('open');
     }
 
@@ -529,37 +351,20 @@ footer {
     }
 
     // --- Tri ---
-    function applySort() {
-        const mode = sortSelect.value;
-        if (mode === 'date-asc') {
-            // Re-show by month, sort within each month by date asc — c'est l'ordre de base.
-            // Restaure l'ordre du DOM par data-date-iso ascendant à l'intérieur de chaque section.
-            sections.forEach(s => sortInSection(s, (a, b) => a.dateIso.localeCompare(b.dateIso)));
-            sections.forEach(s => s.style.display = s.dataset.month ? '' : 'none');
-            return;
-        }
+    events.forEach(ev => { ev._originSection = ev.closest('.month-section'); });
 
-        // Pour les autres tris, on aplatit toutes les sections en une liste plate
-        // et on cache les <h2> "mois" (sauf si on revient sur date-asc).
-        const visibleEvents = events.filter(e => e.dataset.hidden !== '1');
-        const cmp = comparator(mode);
-        visibleEvents.sort(cmp);
-
-        // Place tous les events dans une section virtuelle "résultats"
-        let resultSection = main.querySelector('section[data-virtual-results]');
-        if (!resultSection) {
-            resultSection = document.createElement('section');
-            resultSection.className = 'month-section';
-            resultSection.dataset.virtualResults = '1';
-            const h = document.createElement('h2');
-            h.textContent = 'Résultats triés';
-            resultSection.appendChild(h);
-            main.appendChild(resultSection);
-        }
-        // Cache les sections de mois et place les events dans la virtual section
-        sections.forEach(s => s.style.display = 'none');
-        resultSection.style.display = '';
-        visibleEvents.forEach(ev => resultSection.appendChild(ev));
+    function restoreMonthLayout() {
+        events.forEach(ev => {
+            if (ev._originSection && ev.parentNode !== ev._originSection.querySelector('.space-y-2')) {
+                ev._originSection.querySelector('.space-y-2').appendChild(ev);
+            }
+        });
+        sections.forEach(s => {
+            const visible = s.querySelectorAll('article.event:not([data-hidden="1"])').length;
+            s.style.display = visible === 0 ? 'none' : '';
+        });
+        const virtual = main.querySelector('section[data-virtual-results]');
+        if (virtual) virtual.style.display = 'none';
     }
 
     function comparator(mode) {
@@ -567,10 +372,9 @@ footer {
             case 'date-desc':
                 return (a, b) => b.dataset.dateIso.localeCompare(a.dataset.dateIso);
             case 'price-asc':
-                // Sans prix -> dernier
                 return (a, b) => priceKey(a) - priceKey(b);
             case 'price-desc':
-                return (a, b) => priceKey(b, /*missingHigh*/false) - priceKey(a, false);
+                return (a, b) => priceKey(b) - priceKey(a);
             case 'seats-desc':
                 return (a, b) => parseInt(b.dataset.seats, 10) - parseInt(a.dataset.seats, 10);
             default:
@@ -579,65 +383,44 @@ footer {
     }
 
     function priceKey(ev) {
-        // Sans prix => place en fin pour les deux sens.
         if (ev.dataset.hasPrice !== '1') return Number.MAX_SAFE_INTEGER;
         return parseInt(ev.dataset.priceCents, 10);
     }
 
-    function sortInSection(section, cmp) {
-        // Optionnel : tri stable des articles à l'intérieur d'une section.
-        const articles = Array.from(section.querySelectorAll('article.event'));
-        articles.sort((a, b) => cmp(
-            { dateIso: a.dataset.dateIso, ...a.dataset },
-            { dateIso: b.dataset.dateIso, ...b.dataset }
-        ));
-        articles.forEach(a => section.appendChild(a));
-    }
-
-    // Quand on revient sur date-asc après un autre tri, il faut restaurer la
-    // structure par mois. Le plus simple : reload, ou bien on conserve les
-    // refs initiales des sections. Implémentation : on re-déplace chaque event
-    // dans sa section d'origine (mémorisée sur l'élément).
-    events.forEach(ev => {
-        ev._originSection = ev.closest('.month-section');
-    });
-
-    function restoreMonthLayout() {
-        events.forEach(ev => {
-            if (ev._originSection && ev.parentNode !== ev._originSection) {
-                ev._originSection.appendChild(ev);
-            }
-        });
-        sections.forEach(s => s.style.display = '');
-        const virtual = main.querySelector('section[data-virtual-results]');
-        if (virtual) virtual.style.display = 'none';
-    }
-
-    // Override applySort pour gérer le retour vers date-asc
-    const _originalApplySort = applySort;
-    applySort = function() {
-        if (sortSelect.value === 'date-asc') {
+    function applySort() {
+        const mode = sortSelect.value;
+        if (mode === 'date-asc') {
             restoreMonthLayout();
-            // Les events sont déjà dans l'ordre date asc dans leur section d'origine.
-            // Cache les sections vides selon les filtres.
-            sections.forEach(s => {
-                const visible = s.querySelectorAll('article.event:not([data-hidden="1"])').length;
-                s.style.display = visible === 0 ? 'none' : '';
-            });
             return;
         }
-        _originalApplySort();
-    };
+        const visibleEvents = events.filter(e => e.dataset.hidden !== '1');
+        visibleEvents.sort(comparator(mode));
+
+        let resultSection = main.querySelector('section[data-virtual-results]');
+        if (!resultSection) {
+            resultSection = document.createElement('section');
+            resultSection.className = 'month-section mb-6';
+            resultSection.dataset.virtualResults = '1';
+            const h = document.createElement('h2');
+            h.className = 'text-xs uppercase tracking-widest opacity-60 mb-2 px-1 font-semibold';
+            h.textContent = 'Résultats triés';
+            resultSection.appendChild(h);
+            const inner = document.createElement('div');
+            inner.className = 'space-y-2';
+            resultSection.appendChild(inner);
+            main.appendChild(resultSection);
+        }
+        sections.forEach(s => s.style.display = 'none');
+        resultSection.style.display = '';
+        const inner = resultSection.querySelector('.space-y-2');
+        visibleEvents.forEach(ev => inner.appendChild(ev));
+    }
 
     // --- Stats ---
     function updateStats() {
         const visible = events.filter(e => e.dataset.hidden !== '1');
-        const count = visible.length;
-        document.getElementById('stat-count').textContent = count;
-        document.getElementById('stat-count-s').textContent = count > 1 ? 's' : '';
-        document.getElementById('stat-count-s2').textContent = count > 1 ? 's' : '';
+        document.getElementById('stat-count').textContent = visible.length;
 
-        // Sum of seats : seulement RideApp expose un nombre. seats_num >= 9999 = "Dispo" sans nb.
         let totalSeats = 0;
         let hasPreciseSeats = false;
         visible.forEach(ev => {
@@ -649,7 +432,6 @@ footer {
         });
         document.getElementById('stat-seats').textContent = hasPreciseSeats ? totalSeats : '—';
 
-        // Fourchette de prix EUR
         const eurPrices = visible
             .filter(e => e.dataset.hasPrice === '1' && e.dataset.currency === 'EUR')
             .map(e => parseInt(e.dataset.priceCents, 10) / 100);
@@ -659,7 +441,7 @@ footer {
         } else {
             const min = Math.min(...eurPrices);
             const max = Math.max(...eurPrices);
-            priceEl.textContent = (min === max) ? `${min} €` : `${min} – ${max} €`;
+            priceEl.textContent = (min === max) ? `${min} €` : `${min}–${max} €`;
         }
     }
 
@@ -669,47 +451,32 @@ footer {
     onlyWeekend.addEventListener('change', applyFilters);
     sortSelect.addEventListener('change', applyFilters);
 
-    orgChips.addEventListener('click', e => {
-        const chip = e.target.closest('.chip');
-        if (!chip) return;
-        chip.classList.toggle('active');
-        const org = chip.dataset.org;
-        if (chip.classList.contains('active')) activeOrgs.add(org);
-        else activeOrgs.delete(org);
-        applyFilters();
-    });
+    function bindChipGroup(container, set, dataAttr) {
+        container.addEventListener('click', e => {
+            const chip = e.target.closest('.chip-toggle');
+            if (!chip) return;
+            chip.classList.toggle('active');
+            const v = chip.dataset[dataAttr];
+            if (chip.classList.contains('active')) set.add(v);
+            else set.delete(v);
+            applyFilters();
+        });
+    }
+    bindChipGroup(orgChips, activeOrgs, 'org');
+    bindChipGroup(priceChips, activePriceBuckets, 'price');
+    bindChipGroup(levelChips, activeLevels, 'level');
 
     orgsToggleAll.addEventListener('click', () => {
-        const allActive = activeOrgs.size === orgChips.querySelectorAll('.chip').length;
-        if (allActive) {
-            activeOrgs.clear();
-            orgChips.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-        } else {
-            orgChips.querySelectorAll('.chip').forEach(c => {
+        const allActive = activeOrgs.size === orgChips.querySelectorAll('.chip-toggle').length;
+        orgChips.querySelectorAll('.chip-toggle').forEach(c => {
+            if (allActive) {
+                c.classList.remove('active');
+                activeOrgs.delete(c.dataset.org);
+            } else {
                 c.classList.add('active');
                 activeOrgs.add(c.dataset.org);
-            });
-        }
-        applyFilters();
-    });
-
-    priceChips.addEventListener('click', e => {
-        const chip = e.target.closest('.chip');
-        if (!chip) return;
-        chip.classList.toggle('active');
-        const bucket = chip.dataset.price;
-        if (chip.classList.contains('active')) activePriceBuckets.add(bucket);
-        else activePriceBuckets.delete(bucket);
-        applyFilters();
-    });
-
-    levelChips.addEventListener('click', e => {
-        const chip = e.target.closest('.chip');
-        if (!chip) return;
-        chip.classList.toggle('active');
-        const level = chip.dataset.level;
-        if (chip.classList.contains('active')) activeLevels.add(level);
-        else activeLevels.delete(level);
+            }
+        });
         applyFilters();
     });
 
