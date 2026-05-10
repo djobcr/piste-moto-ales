@@ -21,6 +21,7 @@ SCRAPERS = [
     "scrapers.erdete",
     "scrapers.accespiste",
     "scrapers.h2smoto",
+    "scrapers.activbike",
 ]
 
 
