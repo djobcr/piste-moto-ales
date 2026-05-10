@@ -255,6 +255,30 @@
       "aliases": ["folembray", "circuit folembray"]
     },
     {
+      "slug": "anneau-du-rhin",
+      "name": "Anneau du Rhin",
+      "country": "FR",
+      "region": "Haut-Rhin",
+      "city": "Biltzheim",
+      "length_km": 3.7,
+      "full_name": "Circuit de l'Anneau du Rhin",
+      "address": "Rue Biltzheim, 68127 Biltzheim",
+      "description": "Circuit alsacien de 3,7 km, dans la plaine du Rhin. Tracé technique apprécié pour les stages de pilotage.",
+      "aliases": ["anneau du rhin", "anneau-du-rhin", "anneaudurhin", "biltzheim", "rhin"]
+    },
+    {
+      "slug": "pau-arnos",
+      "name": "Pau-Arnos",
+      "country": "FR",
+      "region": "Pyrénées-Atlantiques",
+      "city": "Arnos",
+      "length_km": 2.7,
+      "full_name": "Circuit de Pau-Arnos",
+      "address": "64370 Arnos",
+      "description": "Circuit béarnais de 2,7 km au pied des Pyrénées. Tracé sinueux typique des Pyrénées.",
+      "aliases": ["pau arnos", "pau-arnos", "pauarnos", "arnos", "pau"]
+    },
+    {
       "slug": "fontenay-le-comte",
       "name": "Fontenay-le-Comte",
       "country": "FR",

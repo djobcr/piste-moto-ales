@@ -1,13 +1,17 @@
-"""SuperLaps — page /lgs-events/calendrier + fiches /show.
+"""SuperLaps — 2 organisateurs sur la même plateforme superlaps.fr.
 
-Page calendrier : cards listant chaque journée avec date début (.day-journees,
-.month-journees) et URL `/lgs-events/journee/{slug}/show`.
+- `/lgs-events/calendrier`  → Vikings (alias historique "LGS")
+- `/acidtracks/calendrier`  → Acid Tracks
+
+Même structure HTML pour les deux : cards `<a class="no-link-style">` avec
+`.day-journees`, `.month-journees`, `.card-journees-title`. URLs d'inscription
+respectives : `/lgs-events/journee/inscription/{slug}` et
+`/acidtracks/journee/inscription/{slug}`.
 
 Fiche /show : contient le tarif "À partir de X €" sous `<h3 class="price">`.
 Pour le nombre de places restantes par niveau (Débutant/Moyen/Pilote), le HTML
 server-rendered ne contient que le label "places dispo" sans nombre — donc on
-laisse `available=True` tant que la card est listée. Pour avoir les compteurs
-exacts il faudra Playwright ou trouver un endpoint AJAX (à explorer plus tard).
+laisse `available=True` tant que la card est listée.
 """
 from __future__ import annotations
 
@@ -29,33 +33,41 @@ from scrapers._common import (
     parse_french_date,
 )
 
-ORGANIZER = "SuperLaps"
 BASE_URL = "https://superlaps.fr"
-LIST_URL = f"{BASE_URL}/lgs-events/calendrier"
+
+# Chaque tuple = (organizer_name, list_path, journee_path_segment)
+# journee_path_segment est utilisé pour repérer les liens cards dans la page liste
+_ENDPOINTS = [
+    ("SuperLaps Vikings", "/lgs-events/calendrier",   "/lgs-events/journee/"),
+    ("SuperLaps Acid Tracks", "/acidtracks/calendrier", "/acidtracks/journee/"),
+]
 
 _RE_YEAR = re.compile(r"\b(20\d{2})\b")
 
 
 def fetch() -> list[Event]:
     headers = {"User-Agent": USER_AGENT}
+    events: list[Event] = []
     with httpx.Client(timeout=HTTP_TIMEOUT, headers=headers, follow_redirects=True) as client:
-        resp = client.get(LIST_URL)
-        resp.raise_for_status()
-        soup = BeautifulSoup(resp.text, "html.parser")
-
-        events: list[Event] = []
-        for link in soup.select("a.no-link-style"):
-            if not link.find("div", class_="card-journees"):
-                continue
-            ev = _link_to_event(link, client)
-            if ev is not None:
-                events.append(ev)
+        for organizer_name, list_path, journee_path_segment in _ENDPOINTS:
+            try:
+                resp = client.get(BASE_URL + list_path)
+                resp.raise_for_status()
+            except httpx.HTTPError:
+                continue  # endpoint indispo, on tente le suivant
+            soup = BeautifulSoup(resp.text, "html.parser")
+            for link in soup.select("a.no-link-style"):
+                if not link.find("div", class_="card-journees"):
+                    continue
+                ev = _link_to_event(link, client, organizer=organizer_name, journee_path_segment=journee_path_segment)
+                if ev is not None:
+                    events.append(ev)
     return events
 
 
-def _link_to_event(link, client: httpx.Client) -> Event | None:
+def _link_to_event(link, client: httpx.Client, *, organizer: str, journee_path_segment: str) -> Event | None:
     href = link.get("href") or ""
-    if "/lgs-events/journee/" not in href:
+    if journee_path_segment not in href:
         return None
 
     title_el = link.find("div", class_="card-journees-title")
@@ -72,18 +84,20 @@ def _link_to_event(link, client: httpx.Client) -> Event | None:
     circuit_display = circuit_display_for_slug(circuit_slug)
 
     show_url = urljoin(BASE_URL + "/", href)
-    booking_url = _show_to_inscription_url(show_url)
+    booking_url = _show_to_inscription_url(show_url, journee_path_segment)
 
     parsed = _parse_card_date(link, fallback_text=title)
     if parsed is None:
         return None
 
-    source_id = href.rstrip("/").split("/")[-2] if href.endswith("/show") else href
+    # source_id préfixé par l'organizer pour éviter les collisions Vikings/AcidTracks
+    slug_part = href.rstrip("/").split("/")[-2] if href.endswith("/show") else href
+    source_id = f"{organizer.split()[-1].lower()}:{slug_part}"
 
     price_cents, levels = _fetch_show_details(client, show_url)
 
     return Event(
-        organizer=ORGANIZER,
+        organizer=organizer,
         source_id=source_id,
         circuit=circuit_display,
         date=parsed.isoformat(),
@@ -159,12 +173,13 @@ def _parse_card_date(link, fallback_text: str = "") -> "object | None":
     return parse_french_date(f"{int(day_txt)} {month_txt} {year_match.group(1)}")
 
 
-def _show_to_inscription_url(show_url: str) -> str:
-    """`/lgs-events/journee/SLUG/show` → `/lgs-events/journee/inscription/SLUG`.
+def _show_to_inscription_url(show_url: str, journee_path_segment: str) -> str:
+    """`{segment}SLUG/show` → `{segment}inscription/SLUG`.
 
     Pattern observé sur le bouton 'Inscriptions' dans la fiche détail.
+    Fonctionne pour Vikings (`/lgs-events/journee/`) et Acid Tracks (`/acidtracks/journee/`).
     """
-    if "/lgs-events/journee/" in show_url and show_url.endswith("/show"):
+    if journee_path_segment in show_url and show_url.endswith("/show"):
         slug = show_url.rsplit("/", 2)[-2]
-        return f"{BASE_URL}/lgs-events/journee/inscription/{slug}"
+        return f"{BASE_URL}{journee_path_segment}inscription/{slug}"
     return show_url

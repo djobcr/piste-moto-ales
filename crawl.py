@@ -20,6 +20,7 @@ SCRAPERS = [
     "scrapers.rideapp",
     "scrapers.erdete",
     "scrapers.accespiste",
+    "scrapers.h2smoto",
 ]
 
 
