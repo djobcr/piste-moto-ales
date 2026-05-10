@@ -217,6 +217,26 @@ html { scroll-behavior: smooth; }
 
 <body class="min-h-screen bg-base-100">
 
+{# Nav tabs : Circuits / Organisateurs. `active_tab` est défini par chaque page,
+   `path_prefix` permet de générer les bons liens relatifs selon la profondeur. #}
+{% set _prefix = path_prefix | default('') %}
+<nav class="border-b border-base-300 bg-base-200/80 backdrop-blur sticky top-0 z-30">
+    <div class="container mx-auto max-w-6xl px-3 flex items-center gap-2 overflow-x-auto">
+        <a href="{{ _prefix }}index.html"
+           class="py-3 px-4 text-sm font-bold uppercase tracking-wider whitespace-nowrap transition border-b-2
+                  {% if (active_tab | default('circuits')) == 'circuits' %}border-error text-base-content
+                  {% else %}border-transparent text-base-content/60 hover:text-base-content{% endif %}">
+            Circuits
+        </a>
+        <a href="{{ _prefix }}organisateurs/index.html"
+           class="py-3 px-4 text-sm font-bold uppercase tracking-wider whitespace-nowrap transition border-b-2
+                  {% if (active_tab | default('')) == 'organisateurs' %}border-error text-base-content
+                  {% else %}border-transparent text-base-content/60 hover:text-base-content{% endif %}">
+            Organisateurs
+        </a>
+    </div>
+</nav>
+
 {% block content %}{% endblock %}
 
 <footer class="text-center text-xs opacity-60 py-8 border-t border-base-300 mt-8">

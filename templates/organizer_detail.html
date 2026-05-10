@@ -1,0 +1,288 @@
+{% extends "_base.html" %}
+
+{% set active_tab = "organisateurs" %}
+{% set path_prefix = "../../" %}
+
+{% block title %}{{ organizer.name }} · Organisateurs · Piste Moto{% endblock %}
+
+{% block extra_styles %}
+.event[data-hidden="1"] { display: none; }
+.event[data-out="1"] .event-action-btn { pointer-events: none; opacity: 0.4; }
+
+.event-card {
+    background: linear-gradient(180deg, hsl(var(--b2)) 0%, hsl(var(--b2) / 0.5) 100%);
+    border: 1px solid hsl(var(--b3));
+    border-radius: 1rem;
+    overflow: hidden;
+    transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+    display: flex; flex-direction: column;
+}
+.event-card:hover {
+    transform: translateY(-2px);
+    border-color: hsl(var(--p) / 0.4);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+}
+.event-circuit-badge {
+    background: hsl(var(--b3));
+    padding: 0.45rem 0.875rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: hsl(var(--bc));
+    display: flex; align-items: center; gap: 0.4rem;
+}
+.event-banner {
+    background: hsl(var(--b3));
+    border-top: 1px solid hsl(var(--b3));
+    border-bottom: 1px solid hsl(var(--b3));
+    padding: 0.5rem 0.875rem;
+    color: hsl(var(--bc)); font-weight: 700;
+    display: flex; align-items: baseline; gap: 0.4rem;
+    line-height: 1.05;
+}
+.event-banner .weekday { font-size: 0.75rem; opacity: 0.7; text-transform: capitalize; }
+.event-banner .day-month { font-size: 1.05rem; font-weight: 800; text-transform: uppercase; }
+.event[data-weekend="1"] .event-banner .weekday { color: hsl(var(--er)); opacity: 1; }
+.event-urgence {
+    background: hsl(var(--er)); color: hsl(var(--erc));
+    padding: 0.25rem 0.875rem;
+    font-size: 0.72rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.05em;
+}
+
+.org-hero-banner {
+    background: linear-gradient(135deg,
+        hsl(var(--orga-hue, 200deg) 60% 25%) 0%,
+        hsl(var(--orga-hue, 200deg) 60% 8%) 100%);
+    position: relative; overflow: hidden;
+}
+.org-hero-banner::before {
+    content: "";
+    position: absolute; inset: 0;
+    background-image:
+        linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 32px 32px;
+    pointer-events: none;
+}
+.org-hero-banner > * { position: relative; z-index: 1; }
+.org-hero-logo {
+    width: 80px; height: 80px;
+    background: white; border-radius: 16px;
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.org-hero-logo img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.org-hero-initials {
+    width: 80px; height: 80px;
+    background: white; border-radius: 16px;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: hsl(var(--orga-hue, 200deg) 60% 35%);
+    font-size: 2rem; font-weight: 900;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+{% endblock %}
+
+{% block content %}
+
+<section class="org-hero-banner py-8 px-4 border-b border-base-300" style="--orga-hue: {{ organizer.hue }}">
+    <a href="../index.html" class="back-btn" aria-label="Retour">←</a>
+    <div class="container mx-auto max-w-5xl text-center pt-6">
+        {% if organizer.logo_url %}
+            <span class="org-hero-logo"><img src="{{ organizer.logo_url }}" alt="{{ organizer.name }}"></span>
+        {% else %}
+            <span class="org-hero-initials">{{ organizer.initials }}</span>
+        {% endif %}
+        <h1 class="text-3xl sm:text-4xl font-black mt-3 tracking-tight">{{ organizer.name }}</h1>
+        <p class="text-sm opacity-80 mt-1">
+            <strong>{{ organizer.event_count }}</strong> sortie{% if organizer.event_count > 1 %}s{% endif %} ·
+            <strong>{{ organizer.circuit_count }}</strong> circuit{% if organizer.circuit_count > 1 %}s{% endif %}
+            {%- if organizer.min_price_display %} · à partir de <strong>{{ organizer.min_price_display }}</strong>{% endif -%}
+        </p>
+    </div>
+</section>
+
+<section class="container mx-auto max-w-5xl px-3 pt-4">
+    <div class="card bg-base-200 shadow">
+        <div class="card-body p-4 gap-3">
+            <input type="search" id="search" placeholder="Rechercher (circuit, mois, mot-clé…)"
+                   class="input input-bordered w-full" autocomplete="off">
+
+            <div class="flex flex-wrap gap-3 items-end">
+                <div class="form-control">
+                    <label class="label py-1"><span class="label-text text-xs uppercase tracking-wider opacity-60">Tri</span></label>
+                    <select id="sort" class="select select-bordered select-sm">
+                        <option value="date-asc">Date ↑ (proche)</option>
+                        <option value="date-desc">Date ↓</option>
+                        <option value="price-asc">Prix ↑</option>
+                        <option value="price-desc">Prix ↓</option>
+                    </select>
+                </div>
+                <label class="label cursor-pointer gap-2">
+                    <input type="checkbox" id="only-available" class="toggle toggle-primary toggle-sm" checked>
+                    <span class="label-text text-sm">Avec places dispo</span>
+                </label>
+                <label class="label cursor-pointer gap-2">
+                    <input type="checkbox" id="only-weekend" class="toggle toggle-primary toggle-sm">
+                    <span class="label-text text-sm">Week-end uniquement</span>
+                </label>
+            </div>
+
+            {% if circuits | length > 1 %}
+            <div>
+                <span class="label-text text-xs uppercase tracking-wider opacity-60 block mb-1">Circuits</span>
+                <div class="flex flex-wrap gap-2" id="circuit-chips">
+                    {% for ckt in circuits %}
+                        <button class="chip-toggle btn btn-xs btn-outline active" data-circuit="{{ ckt }}">{{ ckt }}</button>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<main class="container mx-auto max-w-5xl px-3 py-4">
+{% for month_label, group in events_by_month %}
+    {% set month_parts = month_label.rsplit(' ', 1) %}
+    <section class="month-section mb-6" data-month="{{ month_label }}">
+        <h2 class="month-title text-2xl sm:text-3xl mb-3 px-1">
+            {{ month_parts[0] }} <em>{{ month_parts[1] }}</em>
+        </h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {% for ev in group %}
+            <article class="event event-card"
+                     data-circuit="{{ ev.circuit }}"
+                     data-circuit-slug="{{ ev.circuit_slug }}"
+                     data-available="{{ '1' if ev.available else '0' }}"
+                     data-out="{{ '0' if ev.available else '1' }}"
+                     data-weekend="{{ '1' if ev.is_weekend else '0' }}"
+                     data-date-iso="{{ ev.date_iso }}"
+                     data-price-cents="{{ ev.price_cents }}"
+                     data-has-price="{{ '1' if ev.has_price else '0' }}"
+                     data-currency="{{ ev.currency }}"
+                     data-text="{{ ev.search_blob | e }}">
+                <a href="../../circuits/{{ ev.circuit_slug }}/index.html" class="event-circuit-badge no-underline hover:underline">
+                    🏁 {{ ev.circuit }}
+                </a>
+                <div class="event-banner">
+                    <span class="weekday">{{ ev.weekday_long }}</span>
+                    <span class="day-month">{{ ev.day_num }} {{ ev.month_short }}</span>
+                </div>
+                {% if ev.seats_class == 'low' and ev.seats_label %}
+                <div class="event-urgence">⚠ {{ ev.seats_label }}</div>
+                {% endif %}
+                <div class="px-3 py-3 flex-1 flex flex-col gap-2">
+                    <div class="flex items-center justify-between gap-2 flex-wrap">
+                        {% if ev.price_display %}<span class="text-xl font-extrabold tracking-tight">{{ ev.price_display }}</span>
+                        {% else %}<span class="text-xs opacity-50 italic">tarif non communiqué</span>{% endif %}
+                        {% if ev.seats_label and ev.seats_class != 'low' %}
+                            <span class="badge badge-sm
+                                {% if ev.seats_class == 'out' %}badge-ghost line-through opacity-60
+                                {% else %}badge-success badge-outline{% endif %}">{{ ev.seats_label }}</span>
+                        {% endif %}
+                    </div>
+                    {% if ev.title %}<p class="text-xs opacity-60 truncate" title="{{ ev.title }}">{{ ev.title }}</p>{% endif %}
+                    {% if ev.levels %}
+                    <div class="flex flex-wrap gap-1">
+                        {% for lv in ev.levels %}
+                            {% if lv.remaining is defined %}
+                                {% if lv.remaining == 0 %}<span class="badge badge-sm badge-ghost line-through opacity-50">{{ lv.raw }}</span>
+                                {% elif lv.remaining < 5 %}<span class="badge badge-sm badge-warning">{{ lv.raw }} <span class="font-bold tabular-nums">{{ lv.remaining }}</span></span>
+                                {% else %}<span class="badge badge-sm badge-success badge-outline">{{ lv.raw }} <span class="font-bold tabular-nums">{{ lv.remaining }}</span></span>{% endif %}
+                            {% elif lv.is_in_stock is defined %}
+                                {% if lv.is_in_stock %}<span class="badge badge-sm badge-success badge-outline">{{ lv.raw }}</span>
+                                {% else %}<span class="badge badge-sm badge-ghost line-through opacity-50">{{ lv.raw }}</span>{% endif %}
+                            {% else %}<span class="badge badge-sm badge-outline">{{ lv.raw }}</span>{% endif %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    <div class="mt-auto pt-1">
+                        {% if ev.booking_url and ev.available %}
+                            <a class="event-action-btn btn btn-sm btn-primary w-full" href="{{ ev.booking_url }}" target="_blank" rel="noopener">Réserver</a>
+                        {% else %}
+                            <span class="event-action-btn btn btn-sm btn-disabled w-full">Complet</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+{% endfor %}
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    const search = document.getElementById('search');
+    const onlyAvailable = document.getElementById('only-available');
+    const onlyWeekend = document.getElementById('only-weekend');
+    const sortSelect = document.getElementById('sort');
+    const circuitChips = document.getElementById('circuit-chips');
+
+    const events = Array.from(document.querySelectorAll('article.event'));
+    const sections = Array.from(document.querySelectorAll('.month-section'));
+
+    const activeCircuits = new Set();
+    if (circuitChips) circuitChips.querySelectorAll('.chip-toggle').forEach(c => activeCircuits.add(c.dataset.circuit));
+
+    function applyFilters() {
+        const q = search.value.trim().toLowerCase();
+        events.forEach(ev => {
+            let hide = false;
+            if (q && !(ev.dataset.text || '').includes(q)) hide = true;
+            if (onlyAvailable.checked && ev.dataset.available !== '1') hide = true;
+            if (onlyWeekend.checked && ev.dataset.weekend !== '1') hide = true;
+            if (circuitChips && !activeCircuits.has(ev.dataset.circuit)) hide = true;
+            ev.dataset.hidden = hide ? '1' : '0';
+        });
+        sections.forEach(s => {
+            const visible = s.querySelectorAll('article.event:not([data-hidden="1"])').length;
+            s.style.display = visible === 0 ? 'none' : '';
+        });
+        applySort();
+    }
+
+    function comparator(mode) {
+        switch (mode) {
+            case 'date-desc': return (a,b) => b.dataset.dateIso.localeCompare(a.dataset.dateIso);
+            case 'price-asc':
+                return (a,b) => (a.dataset.hasPrice==='1'?parseInt(a.dataset.priceCents,10):Number.MAX_SAFE_INTEGER) - (b.dataset.hasPrice==='1'?parseInt(b.dataset.priceCents,10):Number.MAX_SAFE_INTEGER);
+            case 'price-desc':
+                return (a,b) => (b.dataset.hasPrice==='1'?parseInt(b.dataset.priceCents,10):0) - (a.dataset.hasPrice==='1'?parseInt(a.dataset.priceCents,10):0);
+            default: return (a,b) => a.dataset.dateIso.localeCompare(b.dataset.dateIso);
+        }
+    }
+
+    function applySort() {
+        // tri stable au sein de chaque section mois
+        sections.forEach(s => {
+            const grid = s.querySelector('.grid');
+            if (!grid) return;
+            const articles = Array.from(grid.querySelectorAll('article.event'));
+            articles.sort(comparator(sortSelect.value));
+            articles.forEach(a => grid.appendChild(a));
+        });
+    }
+
+    search.addEventListener('input', applyFilters);
+    onlyAvailable.addEventListener('change', applyFilters);
+    onlyWeekend.addEventListener('change', applyFilters);
+    sortSelect.addEventListener('change', applyFilters);
+    if (circuitChips) circuitChips.addEventListener('click', e => {
+        const chip = e.target.closest('.chip-toggle');
+        if (!chip) return;
+        chip.classList.toggle('active');
+        const v = chip.dataset.circuit;
+        if (chip.classList.contains('active')) activeCircuits.add(v);
+        else activeCircuits.delete(v);
+        applyFilters();
+    });
+
+    applyFilters();
+})();
+</script>
+{% endblock %}

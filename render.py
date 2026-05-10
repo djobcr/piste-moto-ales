@@ -72,6 +72,8 @@ class RenderedEvent:
     organizer_logo_url: str
     organizer_initials: str
     organizer_color: str
+    circuit: str
+    circuit_slug: str
 
 
 def render(db_path: Path = DB_PATH) -> dict:
@@ -175,7 +177,7 @@ def render(db_path: Path = DB_PATH) -> dict:
         for code, n in sorted(country_counts.items(), key=lambda x: -x[1])
     ]
 
-    # 6. Render index page
+    # 6. Render index page (Circuits)
     tpl_index = env.get_template("circuit_index.html")
     (DIST_DIR / "index.html").write_text(
         tpl_index.render(
@@ -185,6 +187,7 @@ def render(db_path: Path = DB_PATH) -> dict:
             count_total=count_total,
             count_organizers=len(organizers_global),
             generated_at=generated_at,
+            path_prefix="",
         ),
         encoding="utf-8",
     )
@@ -198,19 +201,18 @@ def render(db_path: Path = DB_PATH) -> dict:
         circuit_dir = DIST_DIR / "circuits" / slug
         circuit_dir.mkdir(parents=True, exist_ok=True)
 
-        # Détail
         (circuit_dir / "index.html").write_text(
             tpl_detail.render(
                 circuit=c,
                 count_active=count_active,
                 count_total=count_total,
                 generated_at=generated_at,
+                path_prefix="../../",
             ),
             encoding="utf-8",
         )
 
-        # Dates : convertir les rows en RenderedEvent + grouper par mois
-        evs = [_row_to_rendered(r) for r in events_by_slug[slug]]
+        evs = [_row_to_rendered(r, circuit_slug=slug) for r in events_by_slug[slug]]
         events_by_month: dict[str, list[RenderedEvent]] = defaultdict(list)
         organizers_for_circuit: set[str] = set()
         for ev in evs:
@@ -228,6 +230,97 @@ def render(db_path: Path = DB_PATH) -> dict:
                 count_active=count_active,
                 count_total=count_total,
                 generated_at=generated_at,
+                path_prefix="../../",
+            ),
+            encoding="utf-8",
+        )
+
+    # 8. Render Organisateurs : grouper events par organisateur
+    events_by_org: dict[str, list[sqlite3.Row]] = defaultdict(list)
+    for r in rows:
+        events_by_org[r["organizer"]].append(r)
+
+    organizer_summaries = []
+    for org_name, evs in events_by_org.items():
+        slug = _slugify(org_name)
+        # Logo : si au moins un event a un logo url, on le garde
+        logo_url = ""
+        for r in evs:
+            raw = json.loads(r["raw_data"] or "{}")
+            url = raw.get("organizer_logo_url")
+            if url:
+                logo_url = url
+                break
+        # Circuits couverts (slugs)
+        circuits_set: set[str] = set()
+        circuit_displays_set: set[str] = set()
+        for r in evs:
+            raw = json.loads(r["raw_data"] or "{}")
+            cs = raw.get("circuit_slug")
+            if cs:
+                circuits_set.add(cs)
+                circuit_displays_set.add(r["circuit"])
+        # Min price EUR
+        prices_eur = [r["price_cents"] for r in evs
+                      if r["price_cents"] is not None and (r["currency"] or "EUR") == "EUR"]
+        min_price_cents = min(prices_eur) if prices_eur else None
+        min_price_display = _price_display(min_price_cents, "EUR") if min_price_cents else None
+
+        circuits_summary = ", ".join(sorted(circuit_displays_set, key=str.lower)) or "—"
+        organizer_summaries.append({
+            "name": org_name,
+            "slug": slug,
+            "logo_url": logo_url,
+            "initials": _initials_for(org_name),
+            "hue": _color_hue_for(org_name),
+            "event_count": len(evs),
+            "circuit_count": len(circuits_set),
+            "circuits_summary": circuits_summary,
+            "min_price_display": min_price_display,
+            "search_blob": (org_name + " " + circuits_summary).lower(),
+            "_events": evs,
+            "_circuit_displays": sorted(circuit_displays_set, key=str.lower),
+        })
+
+    organizer_summaries.sort(key=lambda o: -o["event_count"])
+
+    organisateurs_dir = DIST_DIR / "organisateurs"
+    organisateurs_dir.mkdir(parents=True, exist_ok=True)
+
+    tpl_org_index = env.get_template("organizer_index.html")
+    (organisateurs_dir / "index.html").write_text(
+        tpl_org_index.render(
+            organizers=organizer_summaries,
+            count_active=count_active,
+            count_total=count_total,
+            generated_at=generated_at,
+            path_prefix="../",
+        ),
+        encoding="utf-8",
+    )
+
+    tpl_org_detail = env.get_template("organizer_detail.html")
+    for o in organizer_summaries:
+        org_dir = organisateurs_dir / o["slug"]
+        org_dir.mkdir(parents=True, exist_ok=True)
+
+        evs = [_row_to_rendered(r) for r in o["_events"]]
+        events_by_month: dict[str, list[RenderedEvent]] = defaultdict(list)
+        for ev in evs:
+            d = date.fromisoformat(ev.date_iso)
+            month_key = f"{MONTHS_FR_LONG[d.month].capitalize()} {d.year}"
+            events_by_month[month_key].append(ev)
+
+        (org_dir / "index.html").write_text(
+            tpl_org_detail.render(
+                organizer=o,
+                events=evs,
+                events_by_month=events_by_month.items(),
+                circuits=o["_circuit_displays"],
+                count_active=count_active,
+                count_total=count_total,
+                generated_at=generated_at,
+                path_prefix="../../",
             ),
             encoding="utf-8",
         )
@@ -235,17 +328,20 @@ def render(db_path: Path = DB_PATH) -> dict:
     return {
         "circuits": len(circuit_summaries),
         "events": count_active,
-        "pages": 1 + 2 * len(circuit_summaries),
+        "organizers": len(organizer_summaries),
+        "pages": 1 + 2 * len(circuit_summaries) + 1 + len(organizer_summaries),
     }
 
 
 # ─────── Helpers ───────
 
-def _row_to_rendered(r: sqlite3.Row) -> RenderedEvent:
+def _row_to_rendered(r: sqlite3.Row, circuit_slug: str | None = None) -> RenderedEvent:
     d = date.fromisoformat(r["date"])
     raw = json.loads(r["raw_data"] or "{}")
     levels = json.loads(r["levels"] or "[]")
     levels.sort(key=lambda lv: _LEVEL_ORDER.get(lv.get("canonical", "autre"), 99))
+    if circuit_slug is None:
+        circuit_slug = raw.get("circuit_slug", "")
 
     organizer_logo_url = raw.get("organizer_logo_url") or ""
     organizer_initials = _initials_for(r["organizer"] or "")
@@ -308,6 +404,8 @@ def _row_to_rendered(r: sqlite3.Row) -> RenderedEvent:
         organizer_logo_url=organizer_logo_url,
         organizer_initials=_initials_for(r["organizer"] or ""),
         organizer_color=organizer_color,
+        circuit=r["circuit"],
+        circuit_slug=circuit_slug,
     )
 
 
@@ -353,6 +451,15 @@ def _color_hue_for(name: str) -> str:
     for c in name:
         h = (h * 31 + ord(c)) % 360
     return f"{h}deg"
+
+
+def _slugify(name: str) -> str:
+    """Slug URL-safe pour un nom d'organisateur ('First On Track' → 'first-on-track')."""
+    import re as _re
+    import unicodedata
+    s = unicodedata.normalize("NFD", name).encode("ascii", "ignore").decode("ascii").lower()
+    s = _re.sub(r"[^a-z0-9]+", "-", s).strip("-")
+    return s or "unknown"
 
 
 if __name__ == "__main__":

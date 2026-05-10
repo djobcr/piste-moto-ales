@@ -1,0 +1,133 @@
+{% extends "_base.html" %}
+
+{% set active_tab = "organisateurs" %}
+{% set path_prefix = "../" %}
+
+{% block title %}Organisateurs · Piste Moto{% endblock %}
+
+{% block extra_styles %}
+.org-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 1rem;
+    background: hsl(var(--b2));
+    border: 1px solid hsl(var(--b3));
+    transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+    text-decoration: none; color: inherit;
+    display: flex; flex-direction: column;
+}
+.org-card:hover {
+    transform: translateY(-3px);
+    border-color: hsl(var(--p) / 0.4);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+}
+.org-card-logo-block {
+    aspect-ratio: 16 / 9;
+    background: linear-gradient(135deg,
+        hsl(var(--orga-hue, 200deg) 60% 35%) 0%,
+        hsl(var(--orga-hue, 200deg) 60% 18%) 100%);
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+}
+.org-card-logo-block img {
+    max-width: 60%; max-height: 70%; object-fit: contain;
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3));
+    background: white; padding: 8px; border-radius: 8px;
+}
+.org-card-logo-initials {
+    font-size: 3rem; font-weight: 900; color: white;
+    letter-spacing: -0.02em;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+.org-card-events-badge {
+    position: absolute; top: 10px; right: 10px;
+    background: rgba(0,0,0,0.65); color: white;
+    padding: 4px 10px; border-radius: 999px;
+    font-size: 0.7rem; font-weight: 600;
+    backdrop-filter: blur(8px);
+}
+.org-card-body { padding: 0.875rem 1rem 1rem; }
+.org-card-name {
+    font-size: 1.25rem; font-weight: 800; letter-spacing: -0.01em;
+}
+.org-card-meta {
+    font-size: 0.75rem; opacity: 0.6; margin-top: 4px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+{% endblock %}
+
+{% block content %}
+
+<header class="hero-index py-10 px-4 border-b border-base-300">
+    <div class="container mx-auto max-w-6xl relative z-10">
+        <div class="flex items-center gap-2 text-xs uppercase tracking-widest opacity-60 mb-2">
+            <span class="text-error">●</span> Piste Moto
+        </div>
+        <h1 class="hero-index-title text-6xl sm:text-7xl">ORGANISATEURS</h1>
+        <p class="text-sm sm:text-base opacity-70 mt-3">
+            <strong class="text-base-content">{{ organizers | length }}</strong> organisateurs ·
+            <strong class="text-base-content">{{ count_active }}</strong> sorties à venir
+        </p>
+    </div>
+</header>
+
+<section class="container mx-auto max-w-6xl px-3 pt-4">
+    <input type="search" id="search" placeholder="Rechercher un organisateur…"
+           class="input input-bordered w-full" autocomplete="off">
+</section>
+
+<main class="container mx-auto max-w-6xl px-3 py-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" id="orgs-grid">
+        {% for o in organizers %}
+        <a href="{{ o.slug }}/index.html"
+           class="org-card"
+           data-name="{{ o.search_blob }}"
+           style="--orga-hue: {{ o.hue }}">
+            <div class="org-card-logo-block">
+                <span class="org-card-events-badge">
+                    {{ o.event_count }} sortie{% if o.event_count > 1 %}s{% endif %}
+                </span>
+                {% if o.logo_url %}
+                    <img src="{{ o.logo_url }}" alt="{{ o.name }}">
+                {% else %}
+                    <span class="org-card-logo-initials">{{ o.initials }}</span>
+                {% endif %}
+            </div>
+            <div class="org-card-body">
+                <div class="org-card-name">{{ o.name }}</div>
+                <div class="org-card-meta">
+                    {{ o.circuit_count }} circuit{% if o.circuit_count > 1 %}s{% endif %}
+                    {%- if o.min_price_display %} · à partir de {{ o.min_price_display }}{% endif -%}
+                </div>
+                <div class="org-card-meta opacity-50 text-[11px]">{{ o.circuits_summary }}</div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+
+    <div id="empty-state" class="hidden text-center py-12 opacity-60">
+        Aucun organisateur ne correspond à ta recherche.
+    </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    const search = document.getElementById('search');
+    const cards = Array.from(document.querySelectorAll('.org-card'));
+    const empty = document.getElementById('empty-state');
+    function applyFilter() {
+        const q = search.value.trim().toLowerCase();
+        let visible = 0;
+        cards.forEach(c => {
+            const hide = q && !(c.dataset.name || '').includes(q);
+            c.style.display = hide ? 'none' : '';
+            if (!hide) visible++;
+        });
+        empty.classList.toggle('hidden', visible > 0);
+    }
+    search.addEventListener('input', applyFilter);
+})();
+</script>
+{% endblock %}

@@ -59,7 +59,8 @@ def main() -> int:
     # les données existantes restent valables.
     try:
         stats = render_module.render()
-        print(f"Rendered {stats['circuits']} circuits, {stats['events']} events, {stats['pages']} HTML pages -> dist/")
+        print(f"Rendered {stats['circuits']} circuits, {stats.get('organizers', '?')} organizers, "
+              f"{stats['events']} events, {stats['pages']} HTML pages -> dist/")
     except Exception as e:
         print(f"[FAIL] render: {type(e).__name__}: {e}")
         traceback.print_exc()
