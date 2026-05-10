@@ -1,11 +1,14 @@
 """RideApp — plateforme SaaS multi-organisateurs (shop.rideapp.fr).
 
 Deux endpoints publics utilisés :
-- `/api/v1/events` (paginé) : liste tous les events, filtrés client-side sur Alès
+- `/api/v1/events` (paginé) : liste tous les events, multi-circuits multi-pays
 - `/api/v1/events/{id}/groups` : niveaux + places restantes par niveau
 
 Le 2e endpoint est exclusif à RideApp et change la donne : on récupère
 "Débutant 4, Moyen 0, Confirmé 0, Pilote 7" au lieu d'un seul "11 places".
+
+Multi-circuit : on garde tout event dont le circuit est reconnu par
+`normalize_circuit_name()` (présent dans data/circuits.json).
 """
 from __future__ import annotations
 
@@ -20,16 +23,13 @@ from scrapers._common import (
     USER_AGENT,
     clean_text,
     euros_to_cents,
+    normalize_circuit_name,
     normalize_level,
 )
 
 API_URL = "https://shop.rideapp.fr/api/v1/events"
 SHOP_BASE = "https://shop.rideapp.fr"
 PER_PAGE = 100
-CIRCUIT = "Alès"
-
-# Variantes acceptées dans l'API pour identifier le circuit Alès
-_ALES_VARIANTS = {"alès", "ales", "alès cévennes", "ales cevennes"}
 
 
 def fetch(today: date | None = None) -> list[Event]:
@@ -61,14 +61,12 @@ def _iter_all_items(client: httpx.Client) -> Iterable[dict]:
         page += 1
 
 
-def _is_ales_circuit(name: str | None) -> bool:
-    if not name:
-        return False
-    return name.strip().lower() in _ALES_VARIANTS
-
-
 def _item_to_event(item: dict, *, today: date, client: httpx.Client) -> Event | None:
-    if not _is_ales_circuit(item.get("circuitName")):
+    circuit_raw = item.get("circuitName") or ""
+    circuit_slug = normalize_circuit_name(circuit_raw)
+    if circuit_slug is None:
+        # Circuit pas encore référencé dans data/circuits.json — on skippe pour
+        # éviter d'agréger n'importe quoi. À ajouter au JSON pour le couvrir.
         return None
 
     parsed = _parse_iso_date(item.get("startDate"))
@@ -97,24 +95,25 @@ def _item_to_event(item: dict, *, today: date, client: httpx.Client) -> Event | 
 
     levels = _fetch_groups(client, event_id) if event_id else []
 
-    # Logo de l'organisateur. L'API renvoie parfois un chemin relatif
-    # ("/data/public/.../...png") et parfois une URL absolue sur "rideapp.pro"
-    # — ce dernier domaine ne résout pas (CDN interne). On normalise toujours
-    # vers `shop.rideapp.fr` qui sert le même contenu publiquement.
+    # Logo organisateur — normalisation domaine (rideapp.pro ne résout pas)
     org_image_path = item.get("organizerImageUrl") or ""
     organizer_logo_url = ""
     if org_image_path:
-        # Extraire la partie /data/... quelle que soit la forme
         if "/data/" in org_image_path:
             tail = "/data/" + org_image_path.split("/data/", 1)[1]
             organizer_logo_url = SHOP_BASE + tail
         elif org_image_path.startswith("/"):
             organizer_logo_url = SHOP_BASE + org_image_path
 
+    # Image du circuit (RideApp expose `circuitImageUrl`)
+    circuit_image_url = item.get("circuitImageUrl") or item.get("imageUrl") or ""
+    if circuit_image_url and "rideapp.pro" in circuit_image_url and "/data/" in circuit_image_url:
+        circuit_image_url = SHOP_BASE + "/data/" + circuit_image_url.split("/data/", 1)[1]
+
     return Event(
         organizer=organizer,
         source_id=event_id or f"rideapp:{organizer_slug}:{parsed.isoformat()}",
-        circuit=CIRCUIT,
+        circuit=circuit_raw,  # nom display brut du payload (ex: "Lédenon")
         date=parsed.isoformat(),
         title=title,
         price_cents=price_cents,
@@ -123,6 +122,8 @@ def _item_to_event(item: dict, *, today: date, client: httpx.Client) -> Event | 
         booking_url=booking_url or item.get("orderUrl") or SHOP_BASE,
         levels=levels,
         raw_data={
+            "circuit_slug": circuit_slug,  # slug canonique pour render
+            "circuit_image_url": circuit_image_url,
             "remaining_seats": remaining,
             "organizer_slug": organizer_slug,
             "organizer_logo_url": organizer_logo_url,

@@ -20,13 +20,18 @@ import httpx
 from bs4 import BeautifulSoup
 
 from db import Event
-from scrapers._common import HTTP_TIMEOUT, USER_AGENT, clean_text, euros_to_cents
+from scrapers._common import (
+    HTTP_TIMEOUT,
+    USER_AGENT,
+    circuit_display_for_slug,
+    clean_text,
+    euros_to_cents,
+    normalize_circuit_name,
+)
 
 ORGANIZER = "AK Racing"
-CIRCUIT = "Alès"
 BASE_URL = "https://ak-racing1.odoo.com"
 SEARCH_URL = f"{BASE_URL}/event"
-SEARCH_QUERY = {"search": "ales"}
 
 # /event/{slug}-{numericId}/register ou /event/{slug}-{numericId}
 _RE_EVENT_HREF = re.compile(r"^/event/(?P<slug>[\w-]+?)-(?P<id>\d+)(?:/register)?$")
@@ -52,30 +57,36 @@ def fetch(today: date | None = None) -> list[Event]:
 
 
 def _iter_event_links(client: httpx.Client):
-    """Itère sur les pages de résultats de la recherche et yield (slug, id)."""
+    """Itère sur toutes les pages d'events Odoo et yield (slug, id) — multi-circuit.
+
+    On ne filtre plus côté slug : c'est la fiche détail qui décide via
+    `normalize_circuit_name(location|title|slug)`. Les events non-trackday
+    (stages enfants, GP minibike) sont écartés à ce moment-là.
+    """
     page = 1
+    seen_pairs: set[tuple[str, str]] = set()
     while True:
         path = f"/event/page/{page}" if page > 1 else "/event"
-        resp = client.get(BASE_URL + path, params=SEARCH_QUERY)
+        resp = client.get(BASE_URL + path)
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
         anchors = soup.select('a[href^="/event/"]')
 
-        any_match = False
+        any_new = False
         for a in anchors:
             href = a.get("href") or ""
             m = _RE_EVENT_HREF.match(href)
             if not m:
                 continue
-            slug = m.group("slug")
-            if "ales" not in slug.lower():
+            pair = (m.group("slug"), m.group("id"))
+            if pair in seen_pairs:
                 continue
-            any_match = True
-            yield slug, m.group("id")
+            seen_pairs.add(pair)
+            any_new = True
+            yield pair
 
-        # Détecte la pagination Odoo : <a href="/event/page/N?...">
         next_link = soup.select_one(f'a[href*="/event/page/{page + 1}"]')
-        if not next_link or not any_match:
+        if not next_link or not any_new:
             return
         page += 1
 
@@ -101,9 +112,22 @@ def _fetch_event_detail(
     if parsed_dt is None or parsed_dt < today:
         return None
 
-    # Titre
+    # Titre + identification du circuit (depuis le nom de l'event ou la location)
     title_el = soup.find(attrs={"itemprop": "name"})
     title = clean_text(title_el.get_text(" ")) if title_el else f"Stage AK Racing {event_id}"
+
+    location_el = soup.select_one('[itemprop="location"] [itemprop="name"]')
+    location_text = clean_text(location_el.get_text(" ")) if location_el else ""
+
+    circuit_slug = (
+        normalize_circuit_name(location_text)
+        or normalize_circuit_name(title)
+        or normalize_circuit_name(slug)
+    )
+    if circuit_slug is None:
+        # Probablement un stage enfant / GP minibike / autre — non-trackday
+        return None
+    circuit_display = circuit_display_for_slug(circuit_slug)
 
     # Prix TTC : premier .oe_currency_value du form d'inscription
     price_cents: int | None = None
@@ -118,7 +142,7 @@ def _fetch_event_detail(
     return Event(
         organizer=ORGANIZER,
         source_id=event_id,
-        circuit=CIRCUIT,
+        circuit=circuit_display,
         date=parsed_dt.isoformat(),
         title=title,
         price_cents=price_cents,
@@ -128,6 +152,8 @@ def _fetch_event_detail(
         raw_data={
             "slug": slug,
             "start_iso": start_value,
+            "circuit_slug": circuit_slug,
+            "location_text": location_text,
         },
     )
 

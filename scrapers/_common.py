@@ -2,11 +2,98 @@
 from __future__ import annotations
 
 import html
+import json
 import re
+import unicodedata
 from datetime import date
+from functools import lru_cache
+from pathlib import Path
 
 USER_AGENT = "Mozilla/5.0 (compatible; piste-moto-aggregator/0.1; +https://github.com/local)"
 HTTP_TIMEOUT = 30.0
+
+_CIRCUITS_JSON_PATH = Path(__file__).resolve().parent.parent / "data" / "circuits.json"
+
+
+def _ascii_normalize(s: str | None) -> str:
+    """Lower + NFD strip accents + alphanumeric only + compress whitespace.
+
+    Permet de matcher 'Alès', 'ALES', 'circuit-d-ales' sur la même clé 'ales'.
+    """
+    if not s:
+        return ""
+    s = unicodedata.normalize("NFD", s).encode("ascii", "ignore").decode("ascii").lower()
+    s = re.sub(r"[^a-z0-9 ]+", " ", s)
+    return re.sub(r"\s+", " ", s).strip()
+
+
+@lru_cache(maxsize=1)
+def _circuits_alias_index() -> dict[str, str]:
+    """Construit {alias_normalisé : slug} depuis data/circuits.json (cached)."""
+    if not _CIRCUITS_JSON_PATH.exists():
+        return {}
+    with open(_CIRCUITS_JSON_PATH, encoding="utf-8") as f:
+        data = json.load(f)
+    index: dict[str, str] = {}
+    for c in data.get("circuits", []):
+        slug = c["slug"]
+        # Le slug lui-même (avec tirets remplacés par espaces) est un alias par défaut
+        index[_ascii_normalize(slug.replace("-", " "))] = slug
+        index[_ascii_normalize(c.get("name", ""))] = slug
+        for a in c.get("aliases", []):
+            key = _ascii_normalize(a)
+            if key:
+                index[key] = slug
+    return index
+
+
+@lru_cache(maxsize=1)
+def _circuits_by_slug() -> dict[str, dict]:
+    """{slug: full_circuit_dict_from_json}."""
+    if not _CIRCUITS_JSON_PATH.exists():
+        return {}
+    with open(_CIRCUITS_JSON_PATH, encoding="utf-8") as f:
+        data = json.load(f)
+    return {c["slug"]: c for c in data.get("circuits", [])}
+
+
+def circuit_display_for_slug(slug: str | None) -> str:
+    """Renvoie le nom display ('Alès', 'Spa Francorchamps') d'un slug canonique."""
+    if not slug:
+        return ""
+    c = _circuits_by_slug().get(slug)
+    if c:
+        return c.get("name", slug)
+    return slug.replace("-", " ").title()
+
+
+@lru_cache(maxsize=1024)
+def normalize_circuit_name(raw: str | None) -> str | None:
+    """Mappe un nom de circuit libre vers un slug canonique de data/circuits.json.
+
+    Stratégie :
+      1. Normalisation ASCII du raw (lowercase, sans accents, alphanum uniquement)
+      2. Match exact dans le dict des aliases
+      3. Fallback : recherche d'un alias en substring du raw
+         (utile pour "circuit de ledenon samedi 28 mai 2026" → ledenon).
+         On exige len(alias) >= 4 pour éviter les faux positifs.
+
+    Renvoie le slug (ex: "ales", "ledenon", "spa-francorchamps") ou None si
+    aucun match trouvé.
+    """
+    if not raw:
+        return None
+    n = _ascii_normalize(raw)
+    if not n:
+        return None
+    idx = _circuits_alias_index()
+    if n in idx:
+        return idx[n]
+    # Substring fallback, alias les plus longs en premier (plus spécifiques)
+    for alias in sorted(idx.keys(), key=len, reverse=True):
+        if len(alias) >= 4 and alias in n:
+            return idx[alias]
+    return None
 
 
 def normalize_level(name: str | None) -> str:

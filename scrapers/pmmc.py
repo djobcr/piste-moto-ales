@@ -66,6 +66,7 @@ def _product_to_event(p: dict, client: httpx.Client) -> Event | None:
             "slug": p.get("slug"),
             "stock_status": p.get("stock_status"),
             "categories": [c.get("slug") for c in (p.get("categories") or [])],
+            "circuit_slug": "ales",  # PMMC = moto-club résident d'Alès
         },
     )
 

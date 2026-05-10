@@ -1,0 +1,57 @@
+{% extends "_base.html" %}
+
+{% block title %}{{ circuit.name }} · Piste Moto{% endblock %}
+
+{% block content %}
+
+<section class="hero-circuit-banner {% if circuit.image_url %}has-image{% endif %}"
+         {% if circuit.image_url %}style="background-image: url('{{ circuit.image_url }}');"{% endif %}>
+    <a href="../../index.html" class="back-btn" aria-label="Retour">←</a>
+    <div class="container mx-auto max-w-4xl px-4 pb-8 pt-16 text-center">
+        <h1 class="hero-circuit-name text-6xl sm:text-7xl">{{ circuit.name | upper }}</h1>
+    </div>
+</section>
+
+<section class="container mx-auto max-w-4xl px-3 py-4">
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm opacity-80 mb-4 px-1">
+        <span class="font-bold">{{ circuit.flag }} {{ circuit.country }}</span>
+        {% if circuit.length_km %}<span class="opacity-60">//</span><span>🏁 {{ circuit.length_km }} km</span>{% endif %}
+        {% if circuit.event_count %}<span class="opacity-60">//</span><span><strong>{{ circuit.event_count }}</strong> sortie{% if circuit.event_count > 1 %}s{% endif %} à venir</span>{% endif %}
+    </div>
+
+    {% if circuit.min_price_display %}
+    <div class="card bg-base-200 mb-4">
+        <div class="card-body py-3 px-4 flex-row items-center justify-between">
+            <span class="text-sm opacity-70">Prix à partir de</span>
+            <span class="text-2xl font-black">{{ circuit.min_price_display }}</span>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if circuit.full_name or circuit.address %}
+    <div class="card bg-base-200 mb-4">
+        <div class="card-body p-4">
+            <h2 class="text-xs uppercase tracking-widest opacity-60 font-bold">Adresse</h2>
+            {% if circuit.full_name %}<p class="font-semibold mt-1">{{ circuit.full_name }}</p>{% endif %}
+            {% if circuit.address %}<p class="text-sm opacity-80 whitespace-pre-line">{{ circuit.address }}</p>{% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if circuit.description %}
+    <div class="card bg-base-200 mb-6">
+        <div class="card-body p-4">
+            <h2 class="text-xs uppercase tracking-widest opacity-60 font-bold">Descriptif circuit</h2>
+            <p class="text-sm opacity-90 mt-1 leading-relaxed">{{ circuit.description }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <a href="dates.html" class="cta-dates">Voir les dates →</a>
+
+    <div class="text-center mt-6">
+        <a href="../../index.html" class="link link-hover text-sm opacity-70">← retour à la liste des circuits</a>
+    </div>
+</section>
+
+{% endblock %}

@@ -74,7 +74,10 @@ def fetch(today: date | None = None) -> list[Event]:
             currency="CHF",
             available=True,
             booking_url=booking_url,
-            raw_data={"matched_text_excerpt": _excerpt_around_date(full_text)},
+            raw_data={
+                "matched_text_excerpt": _excerpt_around_date(full_text),
+                "circuit_slug": "ales",  # Erdete fait 1 sortie/an à Alès
+            },
         )
     ]
 

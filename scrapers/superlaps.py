@@ -21,19 +21,19 @@ from db import Event, Level
 from scrapers._common import (
     HTTP_TIMEOUT,
     USER_AGENT,
+    circuit_display_for_slug,
     clean_text,
     euros_to_cents,
+    normalize_circuit_name,
     normalize_level,
     parse_french_date,
 )
 
 ORGANIZER = "SuperLaps"
-CIRCUIT = "Alès"
 BASE_URL = "https://superlaps.fr"
 LIST_URL = f"{BASE_URL}/lgs-events/calendrier"
 
 _RE_YEAR = re.compile(r"\b(20\d{2})\b")
-_ALES_TOKENS = ("ales", "alès", "alé", "alès")
 
 
 def fetch() -> list[Event]:
@@ -62,8 +62,14 @@ def _link_to_event(link, client: httpx.Client) -> Event | None:
     if title_el is None:
         return None
     title = clean_text(title_el.get_text(" "))
-    if not _is_ales_title(title):
+
+    # Identification du circuit via title (ex: "Alès (Vendredi et/ou Samedi)" ou "Le Luc (Dimanche)")
+    # On extrait la partie avant la parenthèse
+    circuit_part = title.split("(")[0].strip()
+    circuit_slug = normalize_circuit_name(circuit_part)
+    if circuit_slug is None:
         return None
+    circuit_display = circuit_display_for_slug(circuit_slug)
 
     show_url = urljoin(BASE_URL + "/", href)
     booking_url = _show_to_inscription_url(show_url)
@@ -79,7 +85,7 @@ def _link_to_event(link, client: httpx.Client) -> Event | None:
     return Event(
         organizer=ORGANIZER,
         source_id=source_id,
-        circuit=CIRCUIT,
+        circuit=circuit_display,
         date=parsed.isoformat(),
         title=title,
         price_cents=price_cents,
@@ -87,7 +93,7 @@ def _link_to_event(link, client: httpx.Client) -> Event | None:
         available=True,
         booking_url=booking_url,
         levels=levels,
-        raw_data={"show_url": show_url},
+        raw_data={"show_url": show_url, "circuit_slug": circuit_slug},
     )
 
 
@@ -125,11 +131,6 @@ def _fetch_show_details(client: httpx.Client, show_url: str) -> tuple[int | None
         levels.append(Level(raw=raw, canonical=canon))
 
     return price_cents, levels
-
-
-def _is_ales_title(title: str) -> bool:
-    t = title.lower()
-    return any(tok in t for tok in _ALES_TOKENS)
 
 
 def _parse_card_date(link, fallback_text: str = "") -> "object | None":

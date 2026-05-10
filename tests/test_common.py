@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from scrapers._common import (  # noqa: E402
     clean_text,
     euros_to_cents,
+    normalize_circuit_name,
     normalize_level,
     parse_french_date,
     wc_price_to_cents,
@@ -218,6 +219,50 @@ class NormalizeLevel(unittest.TestCase):
         self.assertEqual(normalize_level("Quelque chose"), "autre")
         self.assertEqual(normalize_level(""), "autre")
         self.assertEqual(normalize_level(None), "autre")
+
+
+class NormalizeCircuitName(unittest.TestCase):
+    def test_ales_variants(self):
+        self.assertEqual(normalize_circuit_name("Alès"), "ales")
+        self.assertEqual(normalize_circuit_name("ALES"), "ales")
+        self.assertEqual(normalize_circuit_name("ales"), "ales")
+        self.assertEqual(normalize_circuit_name("circuit d'Alès"), "ales")
+        self.assertEqual(normalize_circuit_name("Pôle Mécanique Alès Cévennes"), "ales")
+
+    def test_ledenon_variants(self):
+        self.assertEqual(normalize_circuit_name("Lédenon"), "ledenon")
+        self.assertEqual(normalize_circuit_name("LEDENON"), "ledenon")
+        self.assertEqual(normalize_circuit_name("circuit de Lédenon"), "ledenon")
+        # Edge case Team SLA : slug "ledenonsamedi" sans tiret
+        self.assertEqual(normalize_circuit_name("ledenonsamedi"), "ledenon")
+
+    def test_substring_fallback(self):
+        # Title comme "Stage de pilotage moto, Circuit de Lédenon 28 juillet 2026"
+        # doit matcher 'ledenon' en substring
+        self.assertEqual(
+            normalize_circuit_name("Stage de pilotage moto, Circuit de Lédenon 28 juillet 2026"),
+            "ledenon",
+        )
+
+    def test_le_luc_with_separator(self):
+        self.assertEqual(normalize_circuit_name("Le Luc"), "le-luc")
+        self.assertEqual(normalize_circuit_name("Le Luc-en-Provence"), "le-luc")
+
+    def test_european_circuits(self):
+        self.assertEqual(normalize_circuit_name("Spa-Francorchamps"), "spa-francorchamps")
+        self.assertEqual(normalize_circuit_name("Mugello"), "mugello")
+        self.assertEqual(normalize_circuit_name("Brno"), "brno")
+        self.assertEqual(normalize_circuit_name("Portimão"), "portimao")
+        self.assertEqual(normalize_circuit_name("Alcarràs"), "alcarras")
+
+    def test_unknown_returns_none(self):
+        self.assertIsNone(normalize_circuit_name("Circuit Inexistant XYZ"))
+        self.assertIsNone(normalize_circuit_name(""))
+        self.assertIsNone(normalize_circuit_name(None))
+
+    def test_no_false_positive_on_short_substring(self):
+        # 'spa' pourrait matcher dans 'espace' — on exige >= 4 chars donc OK
+        self.assertIsNone(normalize_circuit_name("espace"))
 
 
 if __name__ == "__main__":

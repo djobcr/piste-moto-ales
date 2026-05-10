@@ -103,6 +103,7 @@ def _card_to_event(card, client: httpx.Client) -> Event | None:
             "gauge_px": gauge_px,
             "gauge_max_px": _GAUGE_MAX_PX,
             "availability_schema": availability,
+            "circuit_slug": "ales",  # DDE 34 ne fait que des journées Alès
         },
     )
 

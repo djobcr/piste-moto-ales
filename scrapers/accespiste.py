@@ -26,17 +26,19 @@ from db import Event
 from scrapers._common import (
     HTTP_TIMEOUT,
     USER_AGENT,
+    circuit_display_for_slug,
     clean_text,
     euros_to_cents,
+    normalize_circuit_name,
     parse_french_date,
 )
 
 ORGANIZER = "Accès Piste"
-CIRCUIT = "Alès"
 BASE_URL = "https://www.acces-piste.com"
 LIST_URL = f"{BASE_URL}/roulages-moto-sur-circuit"
 
-_RE_ROULAGE_ID = re.compile(r"/circuit/ales\?roulage=(\d+)")
+# /circuit/{nom}?roulage={id} — multi-circuit
+_RE_ROULAGE_ID = re.compile(r"/circuit/([a-z-]+)\?roulage=(\d+)")
 _RE_YEAR = re.compile(r"\b(20\d{2})\b")
 
 
@@ -51,23 +53,29 @@ def fetch(today: date | None = None) -> list[Event]:
         soup = BeautifulSoup(resp.text, "html.parser")
 
     events: list[Event] = []
-    seen_ids: set[str] = set()
+    seen_keys: set[str] = set()
     for a in soup.find_all("a", href=_RE_ROULAGE_ID):
         m = _RE_ROULAGE_ID.search(a["href"])
         if not m:
             continue
-        roulage_id = m.group(1)
-        if roulage_id in seen_ids:
+        circuit_url_slug = m.group(1)  # ex: "ales", "ledenon", "vaison-piste"
+        roulage_id = m.group(2)
+        key = f"{circuit_url_slug}:{roulage_id}"
+        if key in seen_keys:
             continue
-        seen_ids.add(roulage_id)
+        seen_keys.add(key)
 
-        ev = _link_to_event(a, roulage_id, today=today)
+        canonical_slug = normalize_circuit_name(circuit_url_slug)
+        if canonical_slug is None:
+            continue  # Circuit pas encore référencé dans data/circuits.json
+
+        ev = _link_to_event(a, roulage_id, canonical_slug=canonical_slug, today=today)
         if ev is not None:
             events.append(ev)
     return events
 
 
-def _link_to_event(link, roulage_id: str, *, today: date) -> Event | None:
+def _link_to_event(link, roulage_id: str, *, canonical_slug: str, today: date) -> Event | None:
     date_el = link.find("div", class_="roulage-vignette-date")
     title_el = link.find("div", class_="roulage-vignette-titre")
     circuit_el = link.find("div", class_="roulage-vignette-circuit")
@@ -84,12 +92,14 @@ def _link_to_event(link, roulage_id: str, *, today: date) -> Event | None:
     if parsed is None or parsed < today:
         return None
 
+    circuit_display = circuit_display_for_slug(canonical_slug)
+
     if title_el is not None:
         title = clean_text(title_el.get_text(" "))
     elif date_el is not None:
-        title = f"Roulage Alès — {clean_text(date_el.get_text(' '))}"
+        title = f"Roulage {circuit_display} — {clean_text(date_el.get_text(' '))}"
     else:
-        title = f"Roulage Alès — {parsed.isoformat()}"
+        title = f"Roulage {circuit_display} — {parsed.isoformat()}"
 
     price_cents = None
     if price_el is not None:
@@ -101,8 +111,8 @@ def _link_to_event(link, roulage_id: str, *, today: date) -> Event | None:
 
     return Event(
         organizer=ORGANIZER,
-        source_id=roulage_id,
-        circuit=CIRCUIT,
+        source_id=f"{canonical_slug}:{roulage_id}",
+        circuit=circuit_display,
         date=parsed.isoformat(),
         title=title,
         price_cents=price_cents,
@@ -112,6 +122,7 @@ def _link_to_event(link, roulage_id: str, *, today: date) -> Event | None:
         raw_data={
             "roulage_id": roulage_id,
             "is_pack": title_el is not None,
+            "circuit_slug": canonical_slug,
         },
     )
 

@@ -90,6 +90,7 @@ def _product_to_event(p: dict, *, today: date, client: httpx.Client) -> Event | 
             "id": p.get("id"),
             "slug": p.get("slug"),
             "stock_status": p.get("stock_status"),
+            "circuit_slug": "ales",  # Spoon Racing roule 100% à Alès
         },
     )
 

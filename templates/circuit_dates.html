@@ -1,106 +1,12 @@
-<!doctype html>
-<html lang="fr" data-theme="dim">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Piste Moto · Alès — {{ count_active }} sorties à venir</title>
+{% extends "_base.html" %}
 
-<link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.23/dist/full.min.css" rel="stylesheet" type="text/css" />
-<script src="https://cdn.tailwindcss.com"></script>
-<link rel="preconnect" href="https://rsms.me/">
-<link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+{% block title %}{{ circuit.name }} · Dates · Piste Moto{% endblock %}
 
-<style>
-html { scroll-behavior: smooth; }
+{% block extra_styles %}
 .event[data-hidden="1"] { display: none; }
 .event[data-out="1"] .event-action-btn { pointer-events: none; opacity: 0.4; }
 
-/* ─────── HERO ─────── */
-.hero-banner {
-    position: relative;
-    overflow: hidden;
-    background:
-        radial-gradient(circle at 20% 0%, rgba(239, 68, 68, 0.18) 0%, transparent 50%),
-        radial-gradient(circle at 80% 100%, rgba(168, 85, 247, 0.18) 0%, transparent 50%),
-        linear-gradient(135deg, #0f0f10 0%, #1a1a1f 100%);
-}
-/* Grille subtle en pattern */
-.hero-banner::before {
-    content: "";
-    position: absolute; inset: 0;
-    background-image:
-        linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
-    background-size: 32px 32px;
-    pointer-events: none;
-}
-.hero-title {
-    font-weight: 900;
-    letter-spacing: -0.04em;
-    line-height: 0.95;
-    background: linear-gradient(180deg, #fff 0%, #a1a1aa 100%);
-    -webkit-background-clip: text; background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-.hero-circuit {
-    font-weight: 900;
-    font-style: italic;
-    background: linear-gradient(135deg, #ef4444 0%, #ec4899 50%, #a855f7 100%);
-    -webkit-background-clip: text; background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-/* ─────── MOIS TITLE typo poster ─────── */
-.month-title {
-    font-weight: 900;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-}
-.month-title em {
-    font-style: italic;
-    font-weight: 700;
-    opacity: 0.6;
-}
-
-/* ─────── CHIPS FILTRES ─────── */
-.chip-toggle {
-    transition: background-color .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease;
-}
-.chip-toggle:hover {
-    background-color: hsl(var(--bc) / 0.08) !important;
-    border-color: hsl(var(--bc) / 0.45) !important;
-    color: hsl(var(--bc)) !important;
-}
-.chip-toggle:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 2px hsl(var(--b1)), 0 0 0 4px hsl(var(--p));
-}
-.chip-toggle.active {
-    background-color: hsl(var(--p)) !important;
-    color: hsl(var(--pc)) !important;
-    border-color: hsl(var(--p)) !important;
-    font-weight: 600;
-}
-.chip-toggle.active:hover {
-    background-color: hsl(var(--p) / 0.88) !important;
-    border-color: hsl(var(--p) / 0.88) !important;
-    color: hsl(var(--pc)) !important;
-}
-.chip-toggle.active::before {
-    content: "✓";
-    margin-right: 0.25rem;
-    font-weight: 700;
-    opacity: 0.9;
-}
-
-/* ─────── BADGES ─────── */
-.badge.badge-sm {
-    padding-left: 0.4rem; padding-right: 0.4rem;
-    height: 1.1rem; font-size: 0.7rem; gap: 0.2rem;
-}
-.badge.badge-sm .tabular-nums { margin-left: -0.05rem; }
-
-/* ─────── EVENT CARDS (Lot A) ─────── */
+/* Card event */
 .event-card {
     background: linear-gradient(180deg, hsl(var(--b2)) 0%, hsl(var(--b2) / 0.5) 100%);
     border: 1px solid hsl(var(--b3));
@@ -115,8 +21,6 @@ html { scroll-behavior: smooth; }
     border-color: hsl(var(--p) / 0.4);
     box-shadow: 0 8px 24px rgba(0,0,0,0.25);
 }
-
-/* Logo orga (top) */
 .event-logo {
     width: 2.25rem; height: 2.25rem; border-radius: 0.5rem;
     display: flex; align-items: center; justify-content: center;
@@ -124,13 +28,11 @@ html { scroll-behavior: smooth; }
     background: linear-gradient(135deg,
         hsl(var(--orga-hue, 200deg) 60% 55%) 0%,
         hsl(var(--orga-hue, 200deg) 60% 35%) 100%);
-    color: white;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.3);
     overflow: hidden;
 }
 .event-logo img { width: 100%; height: 100%; object-fit: cover; }
 
-/* Bandeau date — sobre, contraste avec le fond de la card */
 .event-banner {
     background: hsl(var(--b3));
     border-top: 1px solid hsl(var(--b3));
@@ -141,31 +43,20 @@ html { scroll-behavior: smooth; }
     display: flex; align-items: baseline; gap: 0.4rem;
     line-height: 1.05;
 }
-.event-banner .weekday {
-    font-size: 0.75rem; opacity: 0.7; text-transform: capitalize;
-}
+.event-banner .weekday { font-size: 0.75rem; opacity: 0.7; text-transform: capitalize; }
 .event-banner .day-month {
     font-size: 1.05rem; font-weight: 800; text-transform: uppercase;
-    letter-spacing: 0.01em;
 }
-/* Week-end : seul le jour de la semaine (Sam./Dim.) passe en accent rouge */
 .event[data-weekend="1"] .event-banner .weekday {
-    color: hsl(var(--er));
-    opacity: 1;
+    color: hsl(var(--er)); opacity: 1;
 }
-
-/* Bandeau urgence (rouge) si peu de places */
 .event-urgence {
-    background: hsl(var(--er));
-    color: hsl(var(--erc));
+    background: hsl(var(--er)); color: hsl(var(--erc));
     padding: 0.25rem 0.875rem;
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    font-size: 0.72rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.05em;
 }
 
-/* ─────── VIEW SWITCHER ─────── */
 .view-switcher .btn { font-weight: 600; }
 .view-switcher .btn.active {
     background-color: hsl(var(--p));
@@ -173,104 +64,45 @@ html { scroll-behavior: smooth; }
     border-color: hsl(var(--p));
 }
 
-/* ─────── CALENDAR (Lot C) ─────── */
-.cal-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 4px;
-}
-.cal-head {
-    text-align: center;
-    font-size: 0.7rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    opacity: 0.6;
-    padding: 0.5rem 0;
-}
-.cal-cell {
-    aspect-ratio: 1;
-    border-radius: 0.5rem;
-    padding: 0.4rem 0.3rem;
+/* Calendrier */
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-head { text-align: center; font-size: 0.7rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.6; padding: 0.5rem 0; }
+.cal-cell { aspect-ratio: 1; border-radius: 0.5rem; padding: 0.4rem 0.3rem;
     display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
-    font-variant-numeric: tabular-nums;
-    background: transparent;
-    color: hsl(var(--bc) / 0.4);
-    font-size: 0.85rem;
-    transition: background-color .15s ease;
-}
-.cal-cell.has-event {
-    background: linear-gradient(180deg, hsl(var(--b2)) 0%, hsl(var(--b3)) 100%);
-    color: hsl(var(--bc));
-    cursor: pointer;
-    border: 1px solid hsl(var(--b3));
-}
-.cal-cell.has-event:hover {
-    border-color: hsl(var(--p));
-    transform: translateY(-1px);
-}
-.cal-cell.today {
-    outline: 2px solid hsl(var(--p));
-    outline-offset: -2px;
-}
-.cal-cell .cal-day-num {
-    font-size: 0.95rem;
-    font-weight: 700;
-    line-height: 1;
-}
-.cal-cell .cal-event-count {
-    margin-top: auto;
-    font-size: 0.65rem;
-    font-weight: 600;
-    color: hsl(var(--p));
-    background: hsl(var(--p) / 0.15);
-    padding: 1px 6px;
-    border-radius: 999px;
-}
+    font-variant-numeric: tabular-nums; background: transparent;
+    color: hsl(var(--bc) / 0.4); font-size: 0.85rem; transition: background-color .15s ease; }
+.cal-cell.has-event { background: linear-gradient(180deg, hsl(var(--b2)) 0%, hsl(var(--b3)) 100%);
+    color: hsl(var(--bc)); cursor: pointer; border: 1px solid hsl(var(--b3)); }
+.cal-cell.has-event:hover { border-color: hsl(var(--p)); transform: translateY(-1px); }
+.cal-cell.today { outline: 2px solid hsl(var(--p)); outline-offset: -2px; }
+.cal-cell .cal-day-num { font-size: 0.95rem; font-weight: 700; line-height: 1; }
+.cal-cell .cal-event-count { margin-top: auto; font-size: 0.65rem; font-weight: 600;
+    color: hsl(var(--p)); background: hsl(var(--p) / 0.15); padding: 1px 6px; border-radius: 999px; }
 .cal-month-section { display: none; }
 .cal-month-section.active { display: block; }
-.cal-nav .month-label {
-    font-weight: 900;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-}
-.cal-nav .month-label em {
-    font-style: italic;
-    font-weight: 700;
-    opacity: 0.6;
-    margin-left: 0.4rem;
-}
+.cal-nav .month-label { font-weight: 900; letter-spacing: 0.02em; text-transform: uppercase; }
+.cal-nav .month-label em { font-style: italic; font-weight: 700; opacity: 0.6; margin-left: 0.4rem; }
 @media (max-width: 540px) {
-    .cal-cell { aspect-ratio: 1; padding: 0.3rem 0.1rem; font-size: 0.75rem; }
+    .cal-cell { padding: 0.3rem 0.1rem; font-size: 0.75rem; }
     .cal-cell .cal-day-num { font-size: 0.85rem; }
     .cal-cell .cal-event-count { font-size: 0.6rem; padding: 1px 4px; }
 }
-</style>
-</head>
+{% endblock %}
 
-<body class="min-h-screen bg-base-100">
+{% block content %}
 
-<!-- ═══════════════ HERO ═══════════════ -->
-<section class="hero-banner py-10 px-4 border-b border-base-300">
-    <div class="container mx-auto max-w-5xl relative z-10">
-        <div class="flex items-center gap-2 text-xs uppercase tracking-widest opacity-60 mb-2">
-            <span class="text-error">●</span> Piste Moto
-        </div>
-        <h1 class="hero-circuit text-6xl sm:text-8xl">ALÈS</h1>
-        <h2 class="hero-title text-2xl sm:text-3xl mt-1">Pôle Mécanique Cévennes</h2>
-        <div class="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-sm opacity-70">
-            <span>FR // 2.5 km</span>
-            <span>·</span>
-            <span><strong class="text-base-content">{{ count_active }}</strong> sorties à venir</span>
-            <span>·</span>
-            <span>{{ count_organizers }} organisateurs</span>
-            <span>·</span>
-            <span class="opacity-60">crawl {{ generated_at }}</span>
-        </div>
+<section class="hero-circuit-banner {% if circuit.image_url %}has-image{% endif %}"
+         {% if circuit.image_url %}style="background-image: url('{{ circuit.image_url }}');"{% endif %}>
+    <a href="index.html" class="back-btn" aria-label="Retour">←</a>
+    <div class="container mx-auto max-w-5xl px-4 pb-6 pt-14 text-center">
+        <h1 class="hero-circuit-name text-5xl sm:text-6xl">{{ circuit.name | upper }}</h1>
+        <p class="text-xs uppercase tracking-widest opacity-80 mt-1 text-base-content">
+            {{ circuit.flag }} {{ circuit.country }}{% if circuit.length_km %} · {{ circuit.length_km }} km{% endif %}
+        </p>
     </div>
 </section>
 
-<!-- ═══════════════ FILTRES ═══════════════ -->
 <section class="container mx-auto max-w-5xl px-3 pt-4">
     <div class="card bg-base-200 shadow">
         <div class="card-body p-4 gap-3">
@@ -282,7 +114,7 @@ html { scroll-behavior: smooth; }
                     <label class="label py-1"><span class="label-text text-xs uppercase tracking-wider opacity-60">Tri</span></label>
                     <select id="sort" class="select select-bordered select-sm">
                         <option value="date-asc">Date ↑ (proche)</option>
-                        <option value="date-desc">Date ↓ (loin)</option>
+                        <option value="date-desc">Date ↓</option>
                         <option value="price-asc">Prix ↑</option>
                         <option value="price-desc">Prix ↓</option>
                         <option value="seats-desc">Places restantes ↓</option>
@@ -318,12 +150,11 @@ html { scroll-behavior: smooth; }
                 </div>
             </div>
 
+            {% if organizers | length > 1 %}
             <div>
                 <div class="flex items-center justify-between mb-1">
                     <span class="label-text text-xs uppercase tracking-wider opacity-60">Organisateurs</span>
-                    <button id="orgs-toggle-all" class="text-xs link link-hover opacity-70" type="button">
-                        tout (dé)sélectionner
-                    </button>
+                    <button id="orgs-toggle-all" class="text-xs link link-hover opacity-70" type="button">tout (dé)sélectionner</button>
                 </div>
                 <div class="flex flex-wrap gap-2" id="org-chips">
                     {% for org in organizers %}
@@ -331,29 +162,22 @@ html { scroll-behavior: smooth; }
                     {% endfor %}
                 </div>
             </div>
+            {% endif %}
         </div>
     </div>
 </section>
 
-<!-- ═══════════════ VIEW SWITCHER ═══════════════ -->
 <section class="container mx-auto max-w-5xl px-3 pt-4">
     <div class="join view-switcher" role="tablist">
-        <button class="btn btn-sm join-item active" data-view="list" type="button">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-            Liste
-        </button>
-        <button class="btn btn-sm join-item" data-view="calendar" type="button">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            Calendrier
-        </button>
+        <button class="btn btn-sm join-item active" data-view="list" type="button">📋 Liste</button>
+        <button class="btn btn-sm join-item" data-view="calendar" type="button">📅 Calendrier</button>
     </div>
 </section>
 
-<!-- ═══════════════ VIEW LIST ═══════════════ -->
 <main id="view-list" class="container mx-auto max-w-5xl px-3 py-4">
 {% if not events %}
     <div class="alert alert-warning shadow my-6">
-        <strong>Aucune sortie à venir.</strong> Le crawl n'a pas trouvé d'événement actif.
+        <strong>Aucune sortie à venir sur ce circuit.</strong>
     </div>
 {% endif %}
 {% for month_label, group in events_by_month %}
@@ -378,72 +202,48 @@ html { scroll-behavior: smooth; }
                      data-levels-bookable="{{ ev.bookable_levels_csv }}"
                      data-text="{{ ev.search_blob | e }}"
                      style="--orga-hue: {{ ev.organizer_color }}">
-                <!-- Top : logo + nom orga -->
                 <div class="flex items-center gap-2 px-3 pt-3 pb-2">
                     <div class="event-logo">
                         {% if ev.organizer_logo_url %}
                             <img src="{{ ev.organizer_logo_url }}" alt="{{ ev.organizer }}" loading="lazy">
-                        {% else %}
-                            {{ ev.organizer_initials }}
-                        {% endif %}
+                        {% else %}{{ ev.organizer_initials }}{% endif %}
                     </div>
                     <div class="flex-1 min-w-0">
                         <div class="text-xs uppercase tracking-wider font-semibold opacity-70 truncate">{{ ev.organizer }}</div>
                     </div>
                 </div>
-                <!-- Bandeau gradient avec date -->
                 <div class="event-banner">
                     <span class="weekday">{{ ev.weekday_long }}</span>
                     <span class="day-month">{{ ev.day_num }} {{ ev.month_short }}</span>
                 </div>
-                <!-- Urgence ? -->
                 {% if ev.seats_class == 'low' and ev.seats_label %}
                 <div class="event-urgence">⚠ {{ ev.seats_label }}</div>
                 {% endif %}
-                <!-- Body -->
                 <div class="px-3 py-3 flex-1 flex flex-col gap-2">
                     <div class="flex items-center justify-between gap-2 flex-wrap">
-                        {% if ev.price_display %}
-                            <span class="text-xl font-extrabold tracking-tight">{{ ev.price_display }}</span>
-                        {% else %}
-                            <span class="text-xs opacity-50 italic">tarif non communiqué</span>
-                        {% endif %}
+                        {% if ev.price_display %}<span class="text-xl font-extrabold tracking-tight">{{ ev.price_display }}</span>
+                        {% else %}<span class="text-xs opacity-50 italic">tarif non communiqué</span>{% endif %}
                         {% if ev.seats_label and ev.seats_class != 'low' %}
                             <span class="badge badge-sm
                                 {% if ev.seats_class == 'out' %}badge-ghost line-through opacity-60
-                                {% else %}badge-success badge-outline
-                                {% endif %}">{{ ev.seats_label }}</span>
+                                {% else %}badge-success badge-outline{% endif %}">{{ ev.seats_label }}</span>
                         {% endif %}
                     </div>
-
-                    {% if ev.title %}
-                    <p class="text-xs opacity-60 truncate" title="{{ ev.title }}">{{ ev.title }}</p>
-                    {% endif %}
-
+                    {% if ev.title %}<p class="text-xs opacity-60 truncate" title="{{ ev.title }}">{{ ev.title }}</p>{% endif %}
                     {% if ev.levels %}
                     <div class="flex flex-wrap gap-1">
                         {% for lv in ev.levels %}
                             {% if lv.remaining is defined %}
-                                {% if lv.remaining == 0 %}
-                                    <span class="badge badge-sm badge-ghost line-through opacity-50" title="{{ lv.raw }} : complet">{{ lv.raw }}</span>
-                                {% elif lv.remaining < 5 %}
-                                    <span class="badge badge-sm badge-warning" title="{{ lv.raw }} : {{ lv.remaining }}/{{ lv.max }}">{{ lv.raw }} <span class="font-bold tabular-nums">{{ lv.remaining }}</span></span>
-                                {% else %}
-                                    <span class="badge badge-sm badge-success badge-outline" title="{{ lv.raw }} : {{ lv.remaining }}/{{ lv.max }}">{{ lv.raw }} <span class="font-bold tabular-nums">{{ lv.remaining }}</span></span>
-                                {% endif %}
+                                {% if lv.remaining == 0 %}<span class="badge badge-sm badge-ghost line-through opacity-50" title="{{ lv.raw }} : complet">{{ lv.raw }}</span>
+                                {% elif lv.remaining < 5 %}<span class="badge badge-sm badge-warning" title="{{ lv.raw }} : {{ lv.remaining }}/{{ lv.max }}">{{ lv.raw }} <span class="font-bold tabular-nums">{{ lv.remaining }}</span></span>
+                                {% else %}<span class="badge badge-sm badge-success badge-outline" title="{{ lv.raw }} : {{ lv.remaining }}/{{ lv.max }}">{{ lv.raw }} <span class="font-bold tabular-nums">{{ lv.remaining }}</span></span>{% endif %}
                             {% elif lv.is_in_stock is defined %}
-                                {% if lv.is_in_stock %}
-                                    <span class="badge badge-sm badge-success badge-outline" title="{{ lv.raw }} : dispo">{{ lv.raw }}</span>
-                                {% else %}
-                                    <span class="badge badge-sm badge-ghost line-through opacity-50" title="{{ lv.raw }} : complet">{{ lv.raw }}</span>
-                                {% endif %}
-                            {% else %}
-                                <span class="badge badge-sm badge-outline" title="{{ lv.raw }}">{{ lv.raw }}</span>
-                            {% endif %}
+                                {% if lv.is_in_stock %}<span class="badge badge-sm badge-success badge-outline" title="{{ lv.raw }} : dispo">{{ lv.raw }}</span>
+                                {% else %}<span class="badge badge-sm badge-ghost line-through opacity-50" title="{{ lv.raw }} : complet">{{ lv.raw }}</span>{% endif %}
+                            {% else %}<span class="badge badge-sm badge-outline" title="{{ lv.raw }}">{{ lv.raw }}</span>{% endif %}
                         {% endfor %}
                     </div>
                     {% endif %}
-
                     <div class="mt-auto pt-1">
                         {% if ev.booking_url and ev.available %}
                             <a class="event-action-btn btn btn-sm btn-primary w-full" href="{{ ev.booking_url }}" target="_blank" rel="noopener">Réserver</a>
@@ -459,38 +259,29 @@ html { scroll-behavior: smooth; }
 {% endfor %}
 </main>
 
-<!-- ═══════════════ VIEW CALENDAR (Lot C) ═══════════════ -->
 <main id="view-calendar" class="container mx-auto max-w-5xl px-3 py-4 hidden">
     {% for month_label, group in events_by_month %}
         {% set m_parts = month_label.rsplit(' ', 1) %}
-        {% set m_name_lower = m_parts[0]|lower %}
-        {% set m_year = m_parts[1] %}
         {% set m_first_iso = group[0].date_iso %}
         <section class="cal-month-section mb-8 {% if loop.first %}active{% endif %}"
-                 data-cal-month-key="{{ m_first_iso[:7] }}"
-                 data-month-name="{{ m_parts[0] }}"
-                 data-month-year="{{ m_year }}">
+                 data-cal-month-key="{{ m_first_iso[:7] }}">
             <div class="cal-nav flex items-center justify-between mb-3 px-1">
-                <button class="btn btn-ghost btn-sm" data-cal-prev="1" type="button" aria-label="Mois précédent">←</button>
-                <span class="month-label text-2xl sm:text-3xl">{{ m_parts[0] }} <em>{{ m_year }}</em></span>
-                <button class="btn btn-ghost btn-sm" data-cal-next="1" type="button" aria-label="Mois suivant">→</button>
+                <button class="btn btn-ghost btn-sm" data-cal-prev="1" type="button">←</button>
+                <span class="month-label text-2xl sm:text-3xl">{{ m_parts[0] }} <em>{{ m_parts[1] }}</em></span>
+                <button class="btn btn-ghost btn-sm" data-cal-next="1" type="button">→</button>
             </div>
             <div class="cal-grid">
                 <div class="cal-head">L</div><div class="cal-head">M</div><div class="cal-head">M</div><div class="cal-head">J</div><div class="cal-head">V</div><div class="cal-head">S</div><div class="cal-head">D</div>
             </div>
-            <div class="cal-grid mt-1" data-cal-cells>
-                <!-- Cells injectées en JS au load (calcul jours du mois + events) -->
-            </div>
-            <p class="text-xs opacity-50 mt-3 px-1">Les jours surlignés ont au moins une sortie ; cliquez pour voir les cards correspondantes.</p>
+            <div class="cal-grid mt-1" data-cal-cells></div>
+            <p class="text-xs opacity-50 mt-3 px-1">Cliquez sur un jour pour voir les sorties.</p>
         </section>
     {% endfor %}
 </main>
 
-<footer class="text-center text-xs opacity-60 py-8 border-t border-base-300">
-    {{ count_total }} events en base · {{ count_active }} actifs · scrape les organisateurs publics, "Réserver" redirige chez eux.
-</footer>
+{% endblock %}
 
-<!-- ═══════════════ JS FILTRES + TRI + STATS + CALENDRIER ═══════════════ -->
+{% block scripts %}
 <script>
 (function() {
     const search = document.getElementById('search');
@@ -508,13 +299,11 @@ html { scroll-behavior: smooth; }
 
     const events = Array.from(document.querySelectorAll('article.event'));
     const sections = Array.from(document.querySelectorAll('.month-section'));
-
     const activeOrgs = new Set();
-    orgChips.querySelectorAll('.chip-toggle').forEach(c => activeOrgs.add(c.dataset.org));
+    if (orgChips) orgChips.querySelectorAll('.chip-toggle').forEach(c => activeOrgs.add(c.dataset.org));
     const activePriceBuckets = new Set();
     const activeLevels = new Set();
 
-    /* ─────── FILTRES ─────── */
     function priceMatchesAnyBucket(priceCents, hasPrice, currency) {
         if (activePriceBuckets.size === 0) return true;
         if (!hasPrice || currency !== 'EUR') return false;
@@ -540,7 +329,7 @@ html { scroll-behavior: smooth; }
             if (q && !text.includes(q)) hide = true;
             if (availOnly && ev.dataset.available !== '1') hide = true;
             if (weekendOnly && ev.dataset.weekend !== '1') hide = true;
-            if (!activeOrgs.has(ev.dataset.org)) hide = true;
+            if (orgChips && !activeOrgs.has(ev.dataset.org)) hide = true;
             if (!priceMatchesAnyBucket(parseInt(ev.dataset.priceCents,10)||0, ev.dataset.hasPrice==='1', ev.dataset.currency||'EUR')) hide = true;
             if (!levelMatchesAnyChip(ev.dataset.levelsBookable || '')) hide = true;
             ev.dataset.hidden = hide ? '1' : '0';
@@ -553,7 +342,6 @@ html { scroll-behavior: smooth; }
         rebuildCalendar();
     }
 
-    /* ─────── TRI ─────── */
     events.forEach(ev => { ev._originSection = ev.closest('.month-section'); });
     function restoreMonthLayout() {
         events.forEach(ev => {
@@ -605,7 +393,6 @@ html { scroll-behavior: smooth; }
         visibleEvents.forEach(ev => grid.appendChild(ev));
     }
 
-    /* ─────── VIEW SWITCHER ─────── */
     viewSwitcher.addEventListener('click', e => {
         const btn = e.target.closest('button[data-view]');
         if (!btn) return;
@@ -617,12 +404,9 @@ html { scroll-behavior: smooth; }
         if (view === 'calendar') rebuildCalendar();
     });
 
-    /* ─────── CALENDRIER ─────── */
     const calSections = Array.from(document.querySelectorAll('.cal-month-section'));
     let calCurrentIdx = 0;
-
     function eventsByDate() {
-        // ne prend en compte que les events visibles (cohérent avec les filtres)
         const map = {};
         events.forEach(ev => {
             if (ev.dataset.hidden === '1') return;
@@ -632,42 +416,33 @@ html { scroll-behavior: smooth; }
         });
         return map;
     }
-
     function renderMonthCells(section, byDate) {
         const cellsContainer = section.querySelector('[data-cal-cells]');
-        const monthKey = section.dataset.calMonthKey; // "2026-05"
+        const monthKey = section.dataset.calMonthKey;
         const [yearStr, monthStr] = monthKey.split('-');
         const year = parseInt(yearStr, 10);
-        const month = parseInt(monthStr, 10); // 1..12
+        const month = parseInt(monthStr, 10);
         const firstDay = new Date(year, month - 1, 1);
         const daysInMonth = new Date(year, month, 0).getDate();
-        // weekday : 0=Lun..6=Dim (correspondance avec affichage L M M J V S D)
-        let startWeekday = firstDay.getDay() - 1; // JS getDay = 0=Sun..6=Sat
+        let startWeekday = firstDay.getDay() - 1;
         if (startWeekday < 0) startWeekday = 6;
-
         cellsContainer.innerHTML = '';
-
         const today = new Date();
         const todayIso = today.toISOString().slice(0, 10);
-
-        // Cells vides avant le 1er jour
         for (let i = 0; i < startWeekday; i++) {
             const empty = document.createElement('div');
             empty.className = 'cal-cell';
             cellsContainer.appendChild(empty);
         }
-
         for (let day = 1; day <= daysInMonth; day++) {
             const iso = `${yearStr}-${monthStr.padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             const cell = document.createElement('div');
             cell.className = 'cal-cell';
             if (iso === todayIso) cell.classList.add('today');
-
             const dayNum = document.createElement('div');
             dayNum.className = 'cal-day-num';
             dayNum.textContent = day;
             cell.appendChild(dayNum);
-
             const dayEvents = byDate[iso];
             if (dayEvents && dayEvents.length) {
                 cell.classList.add('has-event');
@@ -681,38 +456,33 @@ html { scroll-behavior: smooth; }
             cellsContainer.appendChild(cell);
         }
     }
-
     function rebuildCalendar() {
         const byDate = eventsByDate();
         calSections.forEach(s => renderMonthCells(s, byDate));
     }
-
     function showCalMonth(idx) {
         if (idx < 0 || idx >= calSections.length) return;
         calSections.forEach((s, i) => s.classList.toggle('active', i === idx));
         calCurrentIdx = idx;
     }
-
     document.addEventListener('click', e => {
         if (e.target.closest('[data-cal-next]')) showCalMonth(calCurrentIdx + 1);
         else if (e.target.closest('[data-cal-prev]')) showCalMonth(calCurrentIdx - 1);
         else if (e.target.closest('.cal-cell.has-event')) {
             const cell = e.target.closest('.cal-cell.has-event');
             const iso = cell.dataset.iso;
-            // Bascule en vue liste et scroll vers la 1ere card de cette date
             viewSwitcher.querySelector('button[data-view="list"]').click();
             const card = events.find(ev => ev.dataset.dateIso === iso && ev.dataset.hidden !== '1');
             if (card) setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
         }
     });
 
-    /* ─────── LISTENERS GÉNÉRAUX ─────── */
     search.addEventListener('input', applyFilters);
     onlyAvailable.addEventListener('change', applyFilters);
     onlyWeekend.addEventListener('change', applyFilters);
     sortSelect.addEventListener('change', applyFilters);
-
     function bindChipGroup(container, set, dataAttr) {
+        if (!container) return;
         container.addEventListener('click', e => {
             const chip = e.target.closest('.chip-toggle');
             if (!chip) return;
@@ -726,19 +496,18 @@ html { scroll-behavior: smooth; }
     bindChipGroup(orgChips, activeOrgs, 'org');
     bindChipGroup(priceChips, activePriceBuckets, 'price');
     bindChipGroup(levelChips, activeLevels, 'level');
-
-    orgsToggleAll.addEventListener('click', () => {
-        const allActive = activeOrgs.size === orgChips.querySelectorAll('.chip-toggle').length;
-        orgChips.querySelectorAll('.chip-toggle').forEach(c => {
-            if (allActive) { c.classList.remove('active'); activeOrgs.delete(c.dataset.org); }
-            else { c.classList.add('active'); activeOrgs.add(c.dataset.org); }
+    if (orgsToggleAll) {
+        orgsToggleAll.addEventListener('click', () => {
+            const allActive = activeOrgs.size === orgChips.querySelectorAll('.chip-toggle').length;
+            orgChips.querySelectorAll('.chip-toggle').forEach(c => {
+                if (allActive) { c.classList.remove('active'); activeOrgs.delete(c.dataset.org); }
+                else { c.classList.add('active'); activeOrgs.add(c.dataset.org); }
+            });
+            applyFilters();
         });
-        applyFilters();
-    });
+    }
 
     applyFilters();
 })();
 </script>
-
-</body>
-</html>
+{% endblock %}

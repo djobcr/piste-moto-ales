@@ -1,17 +1,21 @@
 """Team SLA — site WooCommerce multi-circuit.
 
 L'API WC Store /wp-json/wc/store/v1/products expose tous les produits (74),
-on filtre ceux dont le slug commence par `circuit-ales-` pour ne garder que
-les sorties Alès. Les noms contiennent du HTML (`<br>`) qu'on nettoie via
-`clean_text`.
+on filtre ceux dont le slug commence par `circuit-` puis on identifie le
+circuit via `normalize_circuit_name()`. Les noms contiennent du HTML (`<br>`)
+qu'on nettoie via `clean_text`.
+
+Edge case slug : "circuit-de-ledenonsamedi-9-mai-2026" — Team SLA ne met pas
+toujours le tiret entre le nom du circuit et le jour de la semaine. Notre
+helper de normalisation gère ça via fallback substring (alias 'ledenon').
 
 Niveaux : attribut `GROUPE SOUHAITE` (Débutant / Intermédiaire / Confirmé /
-Pilote, +variantes "AVEC COACHING"). Pour chaque variation on fetch
-`/products/{id}` qui expose `is_in_stock` ET `low_stock_remaining` quand le
-seuil de "stock bas" est atteint — on a donc parfois un nombre exact.
+Pilote, +variantes "AVEC COACHING"). Stock par variation via `is_in_stock` +
+`low_stock_remaining` (nombre exact quand stock bas).
 """
 from __future__ import annotations
 
+import re
 from datetime import date
 
 import httpx
@@ -20,16 +24,20 @@ from db import Event, Level
 from scrapers._common import (
     HTTP_TIMEOUT,
     USER_AGENT,
+    circuit_display_for_slug,
     clean_text,
+    normalize_circuit_name,
     normalize_level,
     parse_french_date,
     wc_price_to_cents,
 )
 
 ORGANIZER = "Team SLA"
-CIRCUIT = "Alès"
 API_URL = "https://www.team-sla.fr/wp-json/wc/store/v1/products"
 PER_PAGE = 100
+
+# Slug pattern : "circuit-de-NOMCIRCUIT[-jour]-DATE..." ou "circuit-NOMCIRCUIT-..."
+_RE_SLUG_CIRCUIT = re.compile(r"^circuit-(?:de-)?(?:la-|le-)?")
 
 
 def fetch(today: date | None = None) -> list[Event]:
@@ -63,12 +71,19 @@ def fetch(today: date | None = None) -> list[Event]:
 
 def _product_to_event(p: dict, *, today: date, client: httpx.Client) -> Event | None:
     slug = (p.get("slug") or "").lower()
-    if not slug.startswith("circuit-ales-"):
+    if not slug.startswith("circuit-"):
         return None
 
     name = clean_text(p.get("name") or "")
     if not name:
         return None
+
+    # Identification du circuit : on essaie d'abord le nom (plus riche),
+    # sinon on tombe sur le slug (qui peut être "circuit-de-ledenonsamedi-…")
+    circuit_slug = normalize_circuit_name(name) or normalize_circuit_name(slug)
+    if circuit_slug is None:
+        return None
+    circuit_display = circuit_display_for_slug(circuit_slug)
 
     parsed = parse_french_date(name)
     if parsed is None or parsed < today:
@@ -80,7 +95,7 @@ def _product_to_event(p: dict, *, today: date, client: httpx.Client) -> Event | 
     return Event(
         organizer=ORGANIZER,
         source_id=str(p["id"]),
-        circuit=CIRCUIT,
+        circuit=circuit_display,
         date=parsed.isoformat(),
         title=name,
         price_cents=price_cents,
@@ -92,6 +107,7 @@ def _product_to_event(p: dict, *, today: date, client: httpx.Client) -> Event | 
             "id": p.get("id"),
             "slug": p.get("slug"),
             "stock_status": p.get("stock_status"),
+            "circuit_slug": circuit_slug,
         },
     )
 

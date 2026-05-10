@@ -1,0 +1,107 @@
+{% extends "_base.html" %}
+
+{% block title %}Piste Moto · {{ circuits | length }} circuits à venir{% endblock %}
+
+{% block content %}
+
+<header class="hero-index py-10 px-4 border-b border-base-300">
+    <div class="container mx-auto max-w-6xl relative z-10">
+        <div class="flex items-center gap-2 text-xs uppercase tracking-widest opacity-60 mb-2">
+            <span class="text-error">●</span> Piste Moto
+        </div>
+        <h1 class="hero-index-title text-6xl sm:text-7xl">RÉSERVER</h1>
+        <p class="text-sm sm:text-base opacity-70 mt-3">
+            <strong class="text-base-content">{{ circuits | length }}</strong> circuits ·
+            <strong class="text-base-content">{{ count_active }}</strong> sorties à venir ·
+            {{ count_organizers }} organisateurs
+        </p>
+    </div>
+</header>
+
+<section class="container mx-auto max-w-6xl px-3 pt-4">
+    <input type="search" id="search" placeholder="Rechercher un circuit (nom, ville, pays…)"
+           class="input input-bordered w-full" autocomplete="off">
+
+    <div class="flex flex-wrap gap-2 mt-3" id="country-chips">
+        <button class="chip-toggle btn btn-xs btn-outline active" data-country="ALL">Tous</button>
+        {% for country in countries %}
+            <button class="chip-toggle btn btn-xs btn-outline" data-country="{{ country.code }}">
+                {{ country.flag }} {{ country.code }} <span class="opacity-60">({{ country.count }})</span>
+            </button>
+        {% endfor %}
+    </div>
+</section>
+
+<main class="container mx-auto max-w-6xl px-3 py-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" id="circuits-grid">
+        {% for c in circuits %}
+        <a href="circuits/{{ c.slug }}/index.html"
+           class="circuit-card"
+           data-name="{{ c.search_blob }}"
+           data-country="{{ c.country }}"
+           style="--circuit-hue: {{ c.hue }}">
+            <div class="circuit-card-image {% if not c.image_url %}no-image{% endif %}"
+                 {% if c.image_url %}style="background-image: url('{{ c.image_url }}');"{% endif %}>
+                <span class="circuit-card-events-badge">
+                    {{ c.event_count }} sortie{% if c.event_count > 1 %}s{% endif %}
+                </span>
+                <span class="circuit-card-fav" aria-hidden="true">♡</span>
+            </div>
+            {% if c.min_price_display %}
+            <div class="circuit-card-price-band">
+                <span>À partir de</span>
+                <span class="price-amount">{{ c.min_price_display }}</span>
+            </div>
+            {% endif %}
+            <div class="circuit-card-body">
+                <div class="circuit-card-name">{{ c.name }}</div>
+                <div class="circuit-card-country">
+                    {{ c.flag }} {{ c.country }}{% if c.length_km %} · {{ c.length_km }} km{% endif %}
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+
+    <div id="empty-state" class="hidden text-center py-12 opacity-60">
+        Aucun circuit ne correspond à ta recherche.
+    </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    const search = document.getElementById('search');
+    const grid = document.getElementById('circuits-grid');
+    const empty = document.getElementById('empty-state');
+    const countryChips = document.getElementById('country-chips');
+    const cards = Array.from(grid.querySelectorAll('.circuit-card'));
+    let activeCountry = 'ALL';
+
+    function applyFilters() {
+        const q = search.value.trim().toLowerCase();
+        let visible = 0;
+        cards.forEach(c => {
+            const name = c.dataset.name || '';
+            const country = c.dataset.country || '';
+            let hide = false;
+            if (q && !name.includes(q)) hide = true;
+            if (activeCountry !== 'ALL' && country !== activeCountry) hide = true;
+            c.style.display = hide ? 'none' : '';
+            if (!hide) visible++;
+        });
+        empty.classList.toggle('hidden', visible > 0);
+    }
+    search.addEventListener('input', applyFilters);
+    countryChips.addEventListener('click', e => {
+        const chip = e.target.closest('.chip-toggle');
+        if (!chip) return;
+        countryChips.querySelectorAll('.chip-toggle').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        activeCountry = chip.dataset.country;
+        applyFilters();
+    });
+})();
+</script>
+{% endblock %}

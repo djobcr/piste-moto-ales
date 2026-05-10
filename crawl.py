@@ -54,11 +54,11 @@ def main() -> int:
     for w in warnings:
         print(f"  WARN: {w}")
 
-    # Regénère le HTML statique. Si un scraper a fail, on régénère quand même —
-    # les données existantes restent valables pour le HTML.
+    # Regénère le site multi-page. Si un scraper a fail, on régénère quand même —
+    # les données existantes restent valables.
     try:
-        n_rendered = render_module.render()
-        print(f"Rendered {n_rendered} active events to dist/index.html")
+        stats = render_module.render()
+        print(f"Rendered {stats['circuits']} circuits, {stats['events']} events, {stats['pages']} HTML pages -> dist/")
     except Exception as e:
         print(f"[FAIL] render: {type(e).__name__}: {e}")
         traceback.print_exc()
