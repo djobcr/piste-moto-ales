@@ -58,16 +58,33 @@ jobs:
       - name: Commit DB if changed
         # On commit `piste.db` pour persister `first_seen_at` et l'historique
         # des places dispo entre runs. Le `[skip ci]` empêche le re-trigger.
+        # `continue-on-error` : si le push échoue (race condition avec un autre
+        # run ou un push manuel pendant le crawl), on continue vers le deploy
+        # Pages quand même — la DB sera commitée au run suivant.
+        continue-on-error: true
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -f piste.db
-          if ! git diff --cached --quiet; then
-            git commit -m "Crawl $(date -u +%Y-%m-%dT%H:%M:%SZ) [skip ci]"
-            git push
-          else
+          if git diff --cached --quiet; then
             echo "DB unchanged, no commit needed."
+            exit 0
           fi
+          git commit -m "Crawl $(date -u +%Y-%m-%dT%H:%M:%SZ) [skip ci]"
+          # Retry avec rebase pour gérer les race conditions (un autre commit
+          # peut être arrivé sur main pendant les 3 min de crawl)
+          for i in 1 2 3; do
+            if git push; then
+              echo "Pushed DB on attempt $i."
+              exit 0
+            fi
+            echo "Push attempt $i rejected — pulling and retrying..."
+            git pull --rebase --autostash origin main || {
+              echo "Rebase failed, giving up DB commit (not blocking deploy)"
+              exit 0
+            }
+          done
+          echo "DB push failed after 3 attempts, continuing without committing DB."
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
